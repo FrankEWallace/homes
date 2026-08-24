@@ -4,6 +4,7 @@ import { searchListings } from "@/server/listings";
 import { ApiError } from "@/server/api-client";
 import { ListingCard } from "@/components/marketplace/listing-card";
 import { FilterBar } from "@/components/marketplace/filter-bar";
+import { SearchMap } from "@/components/marketplace/search-map";
 
 function first(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
@@ -77,37 +78,45 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
       )}
 
       {result && result.items.length > 0 && (
-        <>
-          <div className="grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 lg:grid-cols-4">
-            {result.items.map((l) => (
-              <ListingCard key={l.id} listing={l} />
-            ))}
+        <div className="grid gap-6 lg:grid-cols-[1fr_minmax(360px,38%)]">
+          {/* Results */}
+          <div>
+            <div className="grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+              {result.items.map((l) => (
+                <ListingCard key={l.id} listing={l} />
+              ))}
+            </div>
+
+            {result.totalPages > 1 && (
+              <nav className="mt-12 flex items-center justify-center gap-2" aria-label="Pagination">
+                {params.page > 1 && (
+                  <Link
+                    href={pageUrl(params.page - 1)}
+                    className="border-bebe text-hof hover:border-hof rounded-full border px-4 py-2 text-[14px] font-medium"
+                  >
+                    Previous
+                  </Link>
+                )}
+                <span className="text-foggy px-2 text-[14px] tabular-nums">
+                  Page {result.page} of {result.totalPages}
+                </span>
+                {params.page < result.totalPages && (
+                  <Link
+                    href={pageUrl(params.page + 1)}
+                    className="border-bebe text-hof hover:border-hof rounded-full border px-4 py-2 text-[14px] font-medium"
+                  >
+                    Next
+                  </Link>
+                )}
+              </nav>
+            )}
           </div>
 
-          {result.totalPages > 1 && (
-            <nav className="mt-12 flex items-center justify-center gap-2" aria-label="Pagination">
-              {params.page > 1 && (
-                <Link
-                  href={pageUrl(params.page - 1)}
-                  className="border-bebe text-hof hover:border-hof rounded-full border px-4 py-2 text-[14px] font-medium"
-                >
-                  Previous
-                </Link>
-              )}
-              <span className="text-foggy px-2 text-[14px] tabular-nums">
-                Page {result.page} of {result.totalPages}
-              </span>
-              {params.page < result.totalPages && (
-                <Link
-                  href={pageUrl(params.page + 1)}
-                  className="border-bebe text-hof hover:border-hof rounded-full border px-4 py-2 text-[14px] font-medium"
-                >
-                  Next
-                </Link>
-              )}
-            </nav>
-          )}
-        </>
+          {/* Map rail — sticky on desktop */}
+          <div className="rounded-card border-bebe hidden overflow-hidden border lg:sticky lg:top-24 lg:block lg:h-[calc(100vh-8rem)]">
+            <SearchMap items={result.items} />
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Search } from "lucide-react";
 
 export default function HomePage() {
@@ -59,6 +60,28 @@ export default function HomePage() {
         <a href="/search?tenure=rent" className="hover:text-hof underline-offset-4 hover:underline">
           Browse rentals
         </a>
+      </div>
+
+      {/* Popular cities — internal links to SEO landing pages */}
+      <div className="mt-16 w-full max-w-[780px]">
+        <p className="text-foggy mb-3 text-[13px] font-semibold tracking-wide uppercase">Popular cities</p>
+        <div className="flex flex-wrap justify-center gap-2">
+          {[
+            { name: "San Francisco", slug: "san-francisco" },
+            { name: "Austin", slug: "austin" },
+            { name: "New York", slug: "new-york" },
+            { name: "Seattle", slug: "seattle" },
+            { name: "Miami", slug: "miami" },
+          ].map((c) => (
+            <Link
+              key={c.slug}
+              href={`/homes/${c.slug}`}
+              className="border-bebe text-hof hover:border-hof rounded-full border bg-white px-4 py-2 text-[14px] font-medium transition-colors"
+            >
+              {c.name}
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   );

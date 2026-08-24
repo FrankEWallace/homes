@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getListing } from "@/server/listings";
 import { formatCurrency, getInitials } from "@/lib/utils";
 import { WishlistHeart } from "@/components/marketplace/wishlist-heart";
+import { SearchMap } from "@/components/marketplace/search-map";
 
 function isRemote(src: string | undefined): src is string {
   return !!src && /^https?:\/\//.test(src);
@@ -17,6 +18,7 @@ export async function generateMetadata({ params }: PageProps<"/listing/[slug]">)
   return {
     title: `${listing.title} — ${where}`,
     description: listing.description.slice(0, 155),
+    alternates: { canonical: `/listing/${listing.slug}` },
     openGraph: { title: listing.title, description: listing.description.slice(0, 155) },
   };
 }
@@ -121,8 +123,36 @@ export default async function ListingPage({ params }: PageProps<"/listing/[slug]
           <div className="border-bebe border-t py-6">
             <h2 className="text-hof text-[20px] font-semibold tracking-[-0.01em]">Location</h2>
             <p className="text-foggy mt-2 text-[14px]">{where}</p>
-            <div className="rounded-card bg-deco text-foggy/60 mt-4 flex aspect-[16/7] items-center justify-center text-[13px]">
-              Map view coming soon
+            <div className="rounded-card border-bebe mt-4 aspect-[16/7] overflow-hidden border">
+              {listing.latitude != null && listing.longitude != null ? (
+                <SearchMap
+                  items={[
+                    {
+                      id: listing.id,
+                      slug: listing.slug,
+                      title: listing.title,
+                      tenure: listing.tenure,
+                      price: listing.priceAmount,
+                      currency: listing.priceCurrency,
+                      rentPeriod: listing.rentPeriod,
+                      bedrooms: listing.bedrooms,
+                      bathrooms: listing.bathrooms,
+                      areaSqft: listing.areaSqft,
+                      city: listing.city,
+                      region: listing.region,
+                      propertyType: listing.type,
+                      isFeatured: listing.isFeatured,
+                      lng: listing.longitude,
+                      lat: listing.latitude,
+                      primaryPhoto: listing.images[0] ?? null,
+                    },
+                  ]}
+                />
+              ) : (
+                <div className="bg-deco text-foggy/60 flex h-full items-center justify-center text-[13px]">
+                  Location unavailable
+                </div>
+              )}
             </div>
           </div>
         </div>

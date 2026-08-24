@@ -177,7 +177,14 @@ Remaining (needs user):
 - ✅ **Seam**: `getListing()` added; shared `listingDetail` + `search` contracts in `@homes/shared`.
 - ✅ **Verified live in-browser** (web+backend+PostGIS+Redis): home capsule, search grid (cards with price/beds/baths/sqft), listing detail — all served through the seam.
 - ✅ **Repo**: initialized git, pushed to **github.com/FrankEWallace/homes** (private). Push protection caught a hardcoded **Resend API key** in the ToJoin fork (`apps/backend/src/utils/mail.ts`); removed it (now env-only) before the key entered history.
-- **Deferred in Phase 2**: interactive map view (search + detail), real media pipeline (cards show placeholders), saved searches/favorites persistence (Phase 3).
+- ✅ **Map view** (2026-08-19): MapLibre GL (keyless CARTO basemap) — split list+map on `/search` with price-pin markers + fit-to-bounds; single-pin map on listing detail.
+- ✅ **Media display**: `next/image` with `remotePatterns` (Unsplash/Cloudinary); cards + gallery render real photos when a listing has image URLs. (Agent upload pipeline = Phase 4.)
+- ✅ **SEO surface**: `robots.ts`, `sitemap.ts` (static + published listings, resilient fallback), per-city landing pages `/homes/[city]` (SSR/ISR + canonical), canonical on listing detail, "popular cities" internal links on home. Verified: sitemap lists all listings, robots disallows `/dashboard`.
+- 🐛 Fixed a contract mismatch surfaced by the sitemap: shared `SearchParams.limit` max was 60 but backend caps at 50 → aligned both to 50.
+- **Agent dashboard** (harvested from studio-admin sidebar) + app-wide DM Sans landed alongside.
+- **Deferred to Phase 3/4**: favorites/saved-search persistence, real lead capture, agent media upload, "search as I move the map" live refetch.
+
+**Phase 2 is complete.**
 
 ## Changelog
 | Date | Change |

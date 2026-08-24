@@ -9,10 +9,11 @@ const nextConfig: NextConfig = {
     removeConsole: process.env.NODE_ENV === "production",
   },
   images: {
-    // Supabase Storage / S3-compatible origins are added here once provisioned.
-    // Kept behind our storage adapter so the host can change without touching UI.
+    // Listing media hosts. Cloudinary/S3-CDN origins are added here once the
+    // upload pipeline is provisioned; Unsplash is used for seed/demo imagery.
     remotePatterns: [
-      // { protocol: "https", hostname: "<project>.supabase.co", pathname: "/storage/v1/object/public/**" },
+      { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "res.cloudinary.com" },
     ],
   },
 };

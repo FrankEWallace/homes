@@ -15,7 +15,7 @@ export const searchParamsSchema = z.object({
   bbox: z.tuple([z.number(), z.number(), z.number(), z.number()]).optional(),
   sort: z.enum(["relevance", "newest", "price_asc", "price_desc"]).default("relevance"),
   page: z.number().int().min(1).default(1),
-  limit: z.number().int().min(1).max(60).default(24),
+  limit: z.number().int().min(1).max(50).default(24),
 });
 export type SearchParams = z.infer<typeof searchParamsSchema>;
 
