@@ -1,22 +1,36 @@
 import Link from "next/link";
+import { AgentSidebar } from "@/components/agent/agent-sidebar";
+import { Separator } from "@/components/ui/separator";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 /**
- * Agent back-office shell (placeholder).
- * Phase 4 replaces this with the harvested studio-admin dashboard shell
- * (dark sidebar SP-1) wired to agent auth + the data-access layer.
+ * Agent back-office shell — dark-sidebar dashboard harvested from studio-admin's
+ * sidebar primitive, using the app's Geist fonts (the public marketplace uses
+ * DM Sans; the two surfaces stay distinct). Real data + agent auth land in Phase 4.
  */
 export default function AgentLayout({ children }: LayoutProps<"/">) {
   return (
-    <div className="flex min-h-full flex-col">
-      <header className="border-border/60 bg-card sticky top-0 z-40 border-b">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4">
-          <Link href="/dashboard" className="font-semibold tracking-tight">
-            Homes · Agent
-          </Link>
-          <span className="text-muted-foreground text-sm">Back-office</span>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
-    </div>
+    <TooltipProvider delayDuration={0}>
+    <SidebarProvider>
+      <AgentSidebar />
+      <SidebarInset className="min-w-0 overflow-x-clip">
+        <header className="bg-background/50 sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b backdrop-blur">
+          <div className="flex w-full items-center gap-2 px-4 lg:px-6">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-4 self-center" />
+            <span className="text-sm font-medium">Agent workspace</span>
+            <Link
+              href="/"
+              className="text-muted-foreground hover:text-foreground ml-auto text-sm transition-colors"
+            >
+              View site →
+            </Link>
+          </div>
+        </header>
+        <div className="min-h-0 min-w-0 flex-1 p-4 md:p-6">{children}</div>
+      </SidebarInset>
+    </SidebarProvider>
+    </TooltipProvider>
   );
 }
