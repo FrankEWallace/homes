@@ -6,7 +6,7 @@ import { SavedSearchCriteriaSchema, type SavedSearchCriteria } from './saved-sea
 const MAX_ALERT_ITEMS = 20;
 
 /** Translate stored search criteria into a Prisma filter over new listings. */
-function criteriaToWhere(c: SavedSearchCriteria, since: Date): Prisma.ListingWhereInput {
+export function criteriaToWhere(c: SavedSearchCriteria, since: Date): Prisma.ListingWhereInput {
   const where: Prisma.ListingWhereInput = {
     status: 'published',
     createdAt: { gt: since },
@@ -34,7 +34,7 @@ function criteriaToWhere(c: SavedSearchCriteria, since: Date): Prisma.ListingWhe
   return where;
 }
 
-function priceLabel(amount: Prisma.Decimal | number, currency: string, rentPeriod: string | null) {
+export function priceLabel(amount: Prisma.Decimal | number, currency: string, rentPeriod: string | null) {
   const n = typeof amount === 'number' ? amount : Number(amount);
   const formatted = new Intl.NumberFormat('en-US', {
     style: 'currency',
