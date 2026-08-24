@@ -1,0 +1,17 @@
+{
+  "name": "homes",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.0.8",
+  "scripts": {
+    "dev:web": "pnpm --filter @homes/web dev",
+    "dev:backend": "pnpm --filter @homes/backend dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "biome check .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.8"
+  }
+}

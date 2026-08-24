@@ -1,0 +1,482 @@
+<title>Marketplace System Design</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #eef1f5;
+    --ink: #17222e;
+    --muted: #5a6676;
+    --faint: #8994a3;
+    --line: #dde2e9;
+    --line-strong: #c6cdd8;
+    --accent: #1f5fa0;
+    --accent-soft: #e7eff7;
+    --v1: #1f7a55;
+    --v1-soft: #e2f2ea;
+    --scale: #9a5a1e;
+    --scale-soft: #f6 ebe0;
+    --scale-soft: #f6ece1;
+    --out: #a03a4a;
+    --shadow: 0 1px 2px rgba(23,34,46,.05), 0 8px 28px -18px rgba(23,34,46,.28);
+    --mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f151c;
+      --surface: #161e28;
+      --surface-2: #1c2732;
+      --ink: #e8edf3;
+      --muted: #9aa6b4;
+      --faint: #6b7887;
+      --line: #263441;
+      --line-strong: #33434f;
+      --accent: #66a6e6;
+      --accent-soft: #17293b;
+      --v1: #58c493;
+      --v1-soft: #14291f;
+      --scale: #d29a5e;
+      --scale-soft: #2a2016;
+      --out: #e07f8e;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -20px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f151c;
+    --surface: #161e28;
+    --surface-2: #1c2732;
+    --ink: #e8edf3;
+    --muted: #9aa6b4;
+    --faint: #6b7887;
+    --line: #263441;
+    --line-strong: #33434f;
+    --accent: #66a6e6;
+    --accent-soft: #17293b;
+    --v1: #58c493;
+    --v1-soft: #14291f;
+    --scale: #d29a5e;
+    --scale-soft: #2a2016;
+    --out: #e07f8e;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -20px rgba(0,0,0,.7);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: clamp(1.5rem, 4vw, 4rem) clamp(1.1rem, 4vw, 3rem) 6rem; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 .9rem;
+  }
+
+  /* Header */
+  header.doc {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 2rem;
+    margin-bottom: 2.5rem;
+  }
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.1rem);
+    line-height: 1.05;
+    letter-spacing: -.02em;
+    margin: 0 0 1rem;
+    text-wrap: balance;
+    font-weight: 800;
+  }
+  .lede { font-size: 1.12rem; color: var(--muted); max-width: 60ch; margin: 0; }
+  .meta { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.5rem; align-items: center; }
+  .pill {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .05em;
+    padding: .3rem .6rem;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    color: var(--muted);
+    background: var(--surface);
+  }
+  .pill.live { color: var(--v1); border-color: var(--v1); background: var(--v1-soft); }
+
+  /* Sections */
+  section { margin-top: 3.25rem; scroll-margin-top: 1.5rem; }
+  h2 {
+    font-size: 1.5rem;
+    letter-spacing: -.01em;
+    margin: 0 0 1.1rem;
+    display: flex;
+    align-items: baseline;
+    gap: .7rem;
+    font-weight: 750;
+  }
+  h2 .num {
+    font-family: var(--mono);
+    font-size: .85rem;
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  h3 { font-size: 1rem; margin: 1.8rem 0 .6rem; color: var(--ink); letter-spacing: .01em; }
+  p { margin: 0 0 1rem; }
+  p.intro { color: var(--muted); max-width: 66ch; }
+  strong { font-weight: 650; }
+
+  /* Cards */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 620px) { .grid2 { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.25rem 1.3rem;
+    box-shadow: var(--shadow);
+  }
+  .card h3 { margin-top: 0; display: flex; align-items: center; gap: .5rem; }
+  .tag {
+    font-family: var(--mono);
+    font-size: .64rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: .18rem .5rem;
+    border-radius: 5px;
+  }
+  .tag.in { color: var(--v1); background: var(--v1-soft); }
+  .tag.out { color: var(--out); background: color-mix(in srgb, var(--out) 12%, transparent); }
+  ul.clean { list-style: none; padding: 0; margin: .4rem 0 0; }
+  ul.clean li { position: relative; padding-left: 1.2rem; margin-bottom: .5rem; color: var(--ink); font-size: .95rem; }
+  ul.clean li::before {
+    content: "";
+    position: absolute; left: 0; top: .62em;
+    width: 6px; height: 6px; border-radius: 2px;
+    background: var(--accent);
+  }
+  ul.clean.out li::before { background: var(--out); }
+
+  /* Tables */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; min-width: 520px; }
+  th, td { text-align: left; padding: .72rem .9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--faint);
+    font-weight: 600;
+    background: var(--surface-2);
+    position: sticky; top: 0;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+  td.id { font-family: var(--mono); font-size: .8rem; color: var(--accent); white-space: nowrap; }
+  .defer { color: var(--faint); font-style: italic; }
+  td .v1cell { color: var(--v1); font-weight: 600; }
+  td .scalecell { color: var(--scale); font-weight: 600; }
+
+  /* Principles list */
+  ol.principles { counter-reset: p; list-style: none; padding: 0; margin: 0; display: grid; gap: .8rem; }
+  ol.principles li {
+    counter-increment: p;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1rem 1.2rem 1rem 3.4rem;
+    position: relative;
+  }
+  ol.principles li::before {
+    content: counter(p);
+    position: absolute; left: 1rem; top: 1rem;
+    font-family: var(--mono);
+    font-size: .85rem;
+    color: var(--accent);
+    background: var(--accent-soft);
+    width: 1.7rem; height: 1.7rem;
+    display: grid; place-items: center;
+    border-radius: 7px;
+    font-weight: 600;
+  }
+  ol.principles li b { display: block; margin-bottom: .15rem; }
+
+  /* Legend */
+  .legend { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: .82rem; color: var(--muted); margin: -.4rem 0 1rem; font-family: var(--mono); }
+  .legend span { display: inline-flex; align-items: center; gap: .4rem; }
+  .dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+  .dot.v1 { background: var(--v1); }
+  .dot.scale { background: var(--scale); }
+
+  .callout {
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: 12px;
+    padding: 1.1rem 1.3rem;
+    margin: 1.25rem 0;
+  }
+  .callout p { margin: 0; }
+  .callout .eyebrow { margin-bottom: .5rem; }
+
+  /* Theme toggle */
+  .toggle {
+    position: fixed; top: 1rem; right: 1rem; z-index: 10;
+    font-family: var(--mono); font-size: .7rem; letter-spacing: .05em;
+    background: var(--surface); color: var(--muted);
+    border: 1px solid var(--line-strong); border-radius: 999px;
+    padding: .45rem .8rem; cursor: pointer;
+  }
+  .toggle:hover { color: var(--ink); border-color: var(--accent); }
+  .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  code { font-family: var(--mono); font-size: .86em; background: var(--surface-2); padding: .1em .35em; border-radius: 4px; }
+  footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--line); color: var(--faint); font-size: .82rem; font-family: var(--mono); }
+</style>
+
+<button class="toggle" id="themeToggle" aria-label="Toggle color theme">◐ theme</button>
+
+<div class="wrap">
+  <header class="doc">
+    <p class="eyebrow">System Design · Living Document</p>
+    <h1>Real Estate Marketplace</h1>
+    <p class="lede">A national-scale public listings marketplace — search-heavy, media-heavy, SEO-critical. This document defines the v1 requirements and the architecture that carries them to scale.</p>
+    <div class="meta">
+      <span class="pill live">● v1 in progress</span>
+      <span class="pill">Segment · Listings marketplace</span>
+      <span class="pill">Next.js 16 · App Router</span>
+      <span class="pill">Updated 2026-08-18</span>
+    </div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span> Product &amp; Scope</h2>
+    <p class="intro">A <strong>public listings marketplace</strong> in the Zillow / Rightmove class. Seekers search and discover; agents publish listings and receive leads. Target scale: <strong>millions of active listings, millions of daily visitors</strong>, heavy search/media load and traffic spikes.</p>
+    <div class="grid2">
+      <div class="card">
+        <h3><span class="tag in">v1 · in</span> Shipping</h3>
+        <ul class="clean">
+          <li>Seeker search + map, filters, faceting, sorting</li>
+          <li>Listing detail — gallery, tour, floor plans, price history</li>
+          <li>Favorites, saved searches + alerts</li>
+          <li>Lead / enquiry capture &amp; agent contact</li>
+          <li>Seeker &amp; agent accounts (auth + roles)</li>
+          <li><strong>Free</strong> agent listing management + lead inbox</li>
+          <li>Basic listing analytics</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><span class="tag out">deferred</span> Later</h3>
+        <ul class="clean out">
+          <li>Billing / subscriptions / paid placement</li>
+          <li>MLS / RESO feed ingestion (v1 = CSV/API only)</li>
+          <li>Heavy moderation / admin plane</li>
+          <li>Mortgage integrations &amp; price estimates</li>
+          <li>Recommendations</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span> Functional Requirements</h2>
+
+    <h3>A · Property seekers (public)</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>#</th><th>Requirement</th></tr></thead>
+        <tbody>
+          <tr><td class="id">F1</td><td>Search by location (map + text) with filters: price, beds/baths, type, buy/rent, area, amenities</td></tr>
+          <tr><td class="id">F2</td><td>Faceted refinement + sorting; map-driven "search as I move"</td></tr>
+          <tr><td class="id">F3</td><td>Listing detail: gallery, tour/video, floor plans, price history, map, nearby amenities</td></tr>
+          <tr><td class="id">F4</td><td>Contact agent / request viewing / enquiry (lead capture)</td></tr>
+          <tr><td class="id">F5</td><td>Accounts: favorites, saved searches, alerts on new matches</td></tr>
+          <tr><td class="id">F6</td><td>Mortgage / affordability calculator <span class="defer">— deferred</span></td></tr>
+          <tr><td class="id">F7</td><td>Share, recently viewed, similar listings <span class="defer">— recs deferred</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>B · Agents / agencies (back-office)</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>#</th><th>Requirement</th></tr></thead>
+        <tbody>
+          <tr><td class="id">F8</td><td>Create / edit / publish / expire listings, upload media, set status</td></tr>
+          <tr><td class="id">F9</td><td>Bulk import via CSV + API <span class="defer">— MLS/RESO feeds deferred</span></td></tr>
+          <tr><td class="id">F10</td><td>Receive &amp; manage leads (inbox, assignment, status), respond</td></tr>
+          <tr><td class="id">F11</td><td>Agency profile, branch/team management, per-agent listings</td></tr>
+          <tr><td class="id">F12</td><td>Listing analytics: views, enquiries, saved counts</td></tr>
+          <tr><td class="id">F13</td><td>Subscription / quota tiers <span class="defer">— deferred</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>C · Admin / platform &nbsp;·&nbsp; D · Cross-cutting</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>#</th><th>Requirement</th></tr></thead>
+        <tbody>
+          <tr><td class="id">F14</td><td>Moderation, fraud/duplicate detection <span class="defer">— light in v1</span></td></tr>
+          <tr><td class="id">F15</td><td>Taxonomy management (locations, types, amenities)</td></tr>
+          <tr><td class="id">F16</td><td>User/agency management, RBAC <span class="defer">— billing deferred</span></td></tr>
+          <tr><td class="id">F17</td><td>Content/SEO management (per-city landing pages)</td></tr>
+          <tr><td class="id">F18</td><td>Ingestion: normalize, dedupe, geocode, validate listings</td></tr>
+          <tr><td class="id">F19</td><td>Search index kept in sync with source of truth</td></tr>
+          <tr><td class="id">F20</td><td>Notification engine (email/SMS/push) for alerts + leads</td></tr>
+          <tr><td class="id">F21</td><td>SEO surface: SSR/ISR pages, sitemaps, structured data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span> Non-Functional Requirements</h2>
+    <p class="intro">The constraints that actually drive the architecture at national scale.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Category</th><th>Target</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Performance</strong></td><td>Search p95 &lt; 300 ms · listing LCP &lt; 2.5 s (CWV "good") · instant map pan/filter</td></tr>
+          <tr><td><strong>Scalability</strong></td><td>1M–10M+ listings · millions of daily visitors · horizontal scale on every read tier</td></tr>
+          <tr><td><strong>Availability</strong></td><td>99.9% public site · read path degrades gracefully if back-office/ingestion is down</td></tr>
+          <tr><td><strong>SEO</strong></td><td>Every listing + location page SSR/ISR · canonical URLs · JSON-LD <code>RealEstateListing</code> · fresh sitemaps</td></tr>
+          <tr><td><strong>Freshness</strong></td><td>New/changed listing searchable within minutes · sold/withdrawn removed fast</td></tr>
+          <tr><td><strong>Security</strong></td><td>Lead PII protected · RBAC + agency tenant isolation · never trust the client (Blueprint §11)</td></tr>
+          <tr><td><strong>Compliance</strong></td><td>GDPR/CCPA (consent, deletion) · Fair Housing (no discriminatory targeting/filtering)</td></tr>
+          <tr><td><strong>Observability</strong></td><td>Tracing on search + ingestion · alerts on index lag, feed &amp; lead-delivery failures</td></tr>
+          <tr><td><strong>Cost</strong></td><td>Media + search dominate · CDN/caching, tiered storage, owned infra at scale</td></tr>
+          <tr><td><strong>A11y / i18n</strong></td><td>WCAG AA · currency/units/locale ready for multi-region</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span> Architecture Principles</h2>
+    <ol class="principles">
+      <li><b>Portability over lock-in — the "own Supabase" doctrine.</b> App code depends only on open, portable primitives (Postgres wire protocol, S3 API, JWT, Redis, containers). Managed providers rent us speed in v1; the same open-source software is self-hosted at scale. Provider swap = connection string + adapter, not a rewrite.</li>
+      <li><b>Service boundary / repository layer.</b> App never calls a proprietary SDK directly. All data access flows through our own API layer — that layer <em>is</em> the backend, and becomes self-hostable.</li>
+      <li><b>Decouple planes.</b> The public read path (CDN + static + search) is independent of the write/back-office plane, so the marketplace stays up under partial failure.</li>
+      <li><b>Derived data is disposable.</b> Search index, caches, and static pages are rebuildable projections of the Postgres source of truth, kept in sync by events / on-demand revalidation.</li>
+      <li><b>Mobile-first, tokens-only UI.</b> Per Blueprint — no arbitrary pixel values, ≤3 type sizes per screen.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span> Core Needs → How We Meet Them</h2>
+    <div class="legend">
+      <span><span class="dot v1"></span> v1 approach (managed, fast)</span>
+      <span><span class="dot scale"></span> graduates to (owned, cheap at scale)</span>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Core need</th><th>v1 approach</th><th>At scale, owned</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Geo + faceted search</strong></td><td class="v1cell">Postgres + PostGIS + full-text via our API</td><td class="scalecell">Self-hosted Typesense / OpenSearch</td></tr>
+          <tr><td><strong>Media at scale</strong></td><td class="v1cell">S3-compatible storage + <code>next/image</code></td><td class="scalecell">Self-hosted MinIO/Garage + CDN</td></tr>
+          <tr><td><strong>SEO rendering</strong></td><td class="v1cell">Next.js 16 Cache Components (PPR / <code>use cache</code>) + ISR</td><td class="scalecell">+ edge caching / self-hosted Node</td></tr>
+          <tr><td><strong>Freshness</strong></td><td class="v1cell">Write → <code>revalidateTag</code> + index upsert</td><td class="scalecell">Event bus / CDC fan-out</td></tr>
+          <tr><td><strong>Source of truth</strong></td><td class="v1cell">Postgres + PostGIS, RLS isolation</td><td class="scalecell">Self-hosted Postgres + read replicas</td></tr>
+          <tr><td><strong>Auth &amp; roles</strong></td><td class="v1cell">Standard JWT (GoTrue-compatible)</td><td class="scalecell">Self-hosted GoTrue / our own</td></tr>
+          <tr><td><strong>Lead delivery</strong></td><td class="v1cell">Leads table → worker → email (Resend) + retry</td><td class="scalecell">Queue + DLQ, CRM webhooks</td></tr>
+          <tr><td><strong>Saved-search alerts</strong></td><td class="v1cell">Scheduled matching → notifications</td><td class="scalecell">Percolator reverse matching</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <p class="eyebrow">The one rule that makes it portable</p>
+      <p>Managed providers are chosen for their <strong>open primitives underneath</strong> — Supabase is just Postgres + GoTrue + an S3 API. We depend on the wire protocols, never the proprietary surface, so lifting to owned infra costs a config change, not a rewrite.</p>
+    </div>
+
+    <h3>Portable primitive → provider map</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Layer</th><th>App depends on</th><th>v1 (managed)</th><th>At scale (owned)</th></tr></thead>
+        <tbody>
+          <tr><td>Database</td><td>Postgres + PostGIS protocol</td><td class="v1cell">Supabase / Neon</td><td class="scalecell">Self-hosted Postgres</td></tr>
+          <tr><td>Auth</td><td>JWT + Postgres rows</td><td class="v1cell">Supabase Auth (GoTrue)</td><td class="scalecell">Self-hosted GoTrue</td></tr>
+          <tr><td>Storage</td><td>S3 API</td><td class="v1cell">Supabase Storage / R2</td><td class="scalecell">MinIO / Garage</td></tr>
+          <tr><td>Search</td><td>Postgres FTS → engine</td><td class="v1cell">Postgres</td><td class="scalecell">Typesense / OpenSearch</td></tr>
+          <tr><td>Cache / Queue</td><td>Redis/Valkey protocol</td><td class="v1cell">Managed</td><td class="scalecell">Self-hosted Valkey</td></tr>
+          <tr><td>CDN / media</td><td>Standard HTTP CDN</td><td class="v1cell">Vercel / Cloudflare</td><td class="scalecell">Cloudflare</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">06</span> Stack &amp; Reuse</h2>
+    <p class="intro"><strong>Web tier:</strong> Next.js 16 (App Router) · React 19 · Tailwind v4 · shadcn/ui (Radix/Base UI) · Zustand · react-hook-form + Zod · TanStack Table · Recharts · React Compiler.</p>
+    <p class="intro">Reuse base is <code>studio-admin</code> (nextdashboard) — a <strong>UI-only</strong> template with no backend. We lift the design system and back-office screens; we build the public marketplace surface new.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>From studio-admin</th><th>Reuse for</th></tr></thead>
+        <tbody>
+          <tr><td><code>components/ui/*</code>, Tailwind preset, theming</td><td>Design system — public + back-office</td></tr>
+          <tr><td>Dashboard shell, sidebar, <code>users</code>, <code>roles</code>, <code>crm</code></td><td>Agent back-office</td></tr>
+          <tr><td><code>auth/v1</code>, <code>auth/v2</code></td><td>Seeker + agent auth UI</td></tr>
+          <tr><td>TanStack data-table, kanban, analytics charts</td><td>Listing tables, lead pipeline, analytics</td></tr>
+          <tr><td><code>calendar</code></td><td>Viewing scheduling (later)</td></tr>
+          <tr><td class="defer">— none —</td><td>Public search + map, listing cards, detail/gallery (built new)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">07</span> App Structure</h2>
+    <p class="intro"><strong>Single Next.js app with route groups</strong> for v1 — not a monorepo.</p>
+    <div class="grid2">
+      <div class="card">
+        <h3><code>(public)</code></h3>
+        <p style="margin:0;color:var(--muted);font-size:.94rem;">Marketplace routes · own layout · seeker auth · SEO / ISR rendering.</p>
+      </div>
+      <div class="card">
+        <h3><code>(agent)</code></h3>
+        <p style="margin:0;color:var(--muted);font-size:.94rem;">Back-office routes · own layout · agent auth · dashboard shell.</p>
+      </div>
+    </div>
+    <p class="intro" style="margin-top:1rem;">Shared <code>components/</code>, <code>lib/</code>, and a <code>server/</code> data-access layer (the §04 service boundary). Monorepo split is deferred until a separate team owns the back-office or release cadences diverge — starting single doesn't foreclose it.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">08</span> Next Steps</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Open item</th></tr></thead>
+        <tbody>
+          <tr><td>Confirm v1 managed provider for the portable primitives (Supabase vs Neon + GoTrue + R2)</td></tr>
+          <tr><td>High-level architecture diagram (components + data flow)</td></tr>
+          <tr><td>Data model — listings, media, agencies, agents, users, favorites, saved_searches, leads, taxonomy</td></tr>
+          <tr><td>Search design detail — PostGIS schema, indexes, ranking</td></tr>
+          <tr><td>URL / routing + SEO scheme (canonical structure for listing &amp; location pages)</td></tr>
+          <tr><td>Ingestion pipeline detail — normalize / geocode / dedupe</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>Real Estate Marketplace · System Design · living document · mirrors docs/SYSTEM_DESIGN.md</footer>
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    var root = document.documentElement;
+    btn.addEventListener('click', function () {
+      var cur = root.getAttribute('data-theme');
+      if (!cur) {
+        var darkOS = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        cur = darkOS ? 'dark' : 'light';
+      }
+      root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+    });
+  })();
+</script>
