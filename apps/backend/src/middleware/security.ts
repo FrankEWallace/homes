@@ -72,6 +72,16 @@ export const globalRateLimit: RequestHandler = rateLimit({
   message: { success: false, message: 'Too many requests, please try again later.' },
 });
 
+// Lead capture: throttle per IP to blunt spam/abuse on the public enquiry form.
+export const leadRateLimit: RequestHandler = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 8,
+  keyGenerator: (req) => req.ip ?? 'unknown',
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many enquiries. Please wait a moment and try again.' },
+});
+
 export const otpRateLimit: RequestHandler = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
   max: env.OTP_RATE_LIMIT_MAX,

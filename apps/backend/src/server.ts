@@ -9,6 +9,7 @@ import { redis } from './config/redis';
 import { initSocket } from './socket';
 import { startPushWorker } from './queues/push.queue';
 import { startJobsWorker, scheduleRecurringJobs } from './queues/jobs.queue';
+import { startLeadsWorker } from './queues/leads.queue';
 
 async function start() {
   await prisma.$connect();
@@ -25,7 +26,10 @@ async function start() {
 
   const jobsWorker = startJobsWorker();
   await scheduleRecurringJobs();
-  console.info('✅ Scheduled jobs worker started (listing boost expiry)');
+  console.info('✅ Scheduled jobs worker started (boost expiry + saved-search alerts)');
+
+  const leadsWorker = startLeadsWorker();
+  console.info('✅ Lead delivery worker started');
 
   httpServer.listen(env.PORT, () => {
     console.info(`✅ Server running on http://localhost:${env.PORT}`);
@@ -44,6 +48,7 @@ async function start() {
         redis.quit(),
         pushWorker.close(),
         jobsWorker.close(),
+        leadsWorker.close(),
         io.close(),
       ]);
       console.info('Server closed');

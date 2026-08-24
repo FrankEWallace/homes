@@ -43,11 +43,13 @@ export const TIER_BY_TYPE: Record<NotificationType, NotificationTier> = {
   new_review: 'standard',
   new_message: 'standard',
   waitlist_spot_available: 'standard',
+  new_lead: 'standard', // agent should see buyer enquiries promptly
 
   // Low — informational / marketing (in-app only)
   earnings_available: 'low',
   listing_boosted: 'low',
   broadcast: 'low',
+  saved_search_match: 'low', // alert digest — in-app + email handled by the matcher
 };
 
 /** The default channel set a tier reaches out on before preferences apply. */
