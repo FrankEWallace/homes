@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HeaderAccount } from "@/components/marketplace/header-account";
 
 export default function PublicLayout({ children }: LayoutProps<"/">) {
   return (
@@ -23,13 +24,7 @@ export default function PublicLayout({ children }: LayoutProps<"/">) {
             >
               List a property
             </Link>
-            <Link
-              href="/dashboard"
-              className="border-bebe hover:shadow-subtle grid size-10 place-items-center rounded-full border transition-shadow"
-              aria-label="Menu"
-            >
-              <span className="bg-hof block h-0.5 w-4 shadow-[0_5px_0_0_currentColor,0_-5px_0_0_currentColor]" />
-            </Link>
+            <HeaderAccount />
           </div>
         </div>
       </header>

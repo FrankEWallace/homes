@@ -5,6 +5,8 @@ import { ApiError } from "@/server/api-client";
 import { ListingCard } from "@/components/marketplace/listing-card";
 import { FilterBar } from "@/components/marketplace/filter-bar";
 import { SearchMap } from "@/components/marketplace/search-map";
+import { SaveSearchButton } from "@/components/marketplace/save-search-button";
+import { getFavoriteIds } from "@/server/wishlist";
 
 function first(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
@@ -41,6 +43,8 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
     error = err instanceof ApiError ? err.message : "Could not reach the listings service.";
   }
 
+  const favoriteIds = await getFavoriteIds();
+
   const pageUrl = (p: number) => {
     const usp = new URLSearchParams();
     for (const [k, v] of Object.entries(sp)) {
@@ -59,11 +63,14 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
           <h1 className="text-hof text-[22px] font-semibold tracking-[-0.02em]">
             {params.q ? `Homes in “${params.q}”` : params.tenure === "rent" ? "Homes for rent" : "Homes for sale"}
           </h1>
-          {result && (
-            <p className="text-foggy text-[14px] tabular-nums">
-              {result.total} home{result.total === 1 ? "" : "s"}
-            </p>
-          )}
+          <div className="flex items-center gap-3">
+            {result && (
+              <p className="text-foggy text-[14px] tabular-nums">
+                {result.total} home{result.total === 1 ? "" : "s"}
+              </p>
+            )}
+            {result && result.total > 0 && <SaveSearchButton />}
+          </div>
         </div>
       </div>
 
@@ -83,7 +90,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
           <div>
             <div className="grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
               {result.items.map((l) => (
-                <ListingCard key={l.id} listing={l} />
+                <ListingCard key={l.id} listing={l} saved={favoriteIds.has(l.id)} />
               ))}
             </div>
 

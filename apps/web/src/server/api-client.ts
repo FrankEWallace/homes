@@ -59,3 +59,35 @@ export async function apiGet<T = unknown>(path: string, opts: ApiGetOptions = {}
   }
   return body as T;
 }
+
+export interface ApiMutateOptions {
+  body?: unknown;
+  token?: string;
+  query?: Record<string, QueryValue | QueryValue[]>;
+}
+
+/** POST/PATCH/DELETE against the backend. Mutations are never cached. */
+export async function apiMutate<T = unknown>(
+  method: "POST" | "PATCH" | "PUT" | "DELETE",
+  path: string,
+  opts: ApiMutateOptions = {},
+): Promise<T> {
+  const url = `${env.API_BASE_URL}${path}${buildQuery(opts.query)}`;
+  const res = await fetch(url, {
+    method,
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
+    },
+    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    cache: "no-store",
+  });
+
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    const message = (body && (body.message as string)) || `Request failed (${res.status})`;
+    throw new ApiError(res.status, message);
+  }
+  return body as T;
+}
