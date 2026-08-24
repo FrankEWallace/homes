@@ -169,6 +169,16 @@ Remaining (needs user):
 - ⏳ Provision the Supabase project + set env, then `supabase db reset` to apply migrations/seed.
 - ⏳ Run `search_listings()` against seed data to confirm exit criteria (ranked/faceted/bbox results).
 
+## Phase 2 progress (2026-08-19)
+
+- ✅ **Design system**: integrated an Airbnb-style token set (Rausch coral accent, Hof/Foggy neutrals, faint canvas, pill radii, DM Sans as the Cereal substitute) as marketplace tokens in the web `globals.css` — public surface only; agent back-office keeps the shadcn look.
+- ✅ **Search UI**: `/search` with a client `FilterBar` (location, tenure, beds, max price, sort → URL params), photography-first `ListingCard` (no border/shadow, wishlist heart, featured pill), results grid, pagination.
+- ✅ **Listing detail**: `/listing/[slug]` — gallery, price, spec grid, description, location placeholder, sticky agent contact card; SEO `generateMetadata` + `RealEstateListing` JSON-LD.
+- ✅ **Seam**: `getListing()` added; shared `listingDetail` + `search` contracts in `@homes/shared`.
+- ✅ **Verified live in-browser** (web+backend+PostGIS+Redis): home capsule, search grid (cards with price/beds/baths/sqft), listing detail — all served through the seam.
+- ✅ **Repo**: initialized git, pushed to **github.com/FrankEWallace/homes** (private). Push protection caught a hardcoded **Resend API key** in the ToJoin fork (`apps/backend/src/utils/mail.ts`); removed it (now env-only) before the key entered history.
+- **Deferred in Phase 2**: interactive map view (search + detail), real media pipeline (cards show placeholders), saved searches/favorites persistence (Phase 3).
+
 ## Changelog
 | Date | Change |
 |---|---|
