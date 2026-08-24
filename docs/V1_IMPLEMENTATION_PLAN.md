@@ -186,6 +186,50 @@ Remaining (needs user):
 
 **Phase 2 is complete.**
 
+## Phase 3 progress (2026-08-24)
+
+Backend:
+- ✅ **Data model**: `Lead` (kind/status, denormalised `agentId`, optional `seekerId`,
+  `deliveredAt`) + `SavedSearch` (JSON `query`, `notify`, `frequency`, `lastCheckedAt`
+  watermark); `LeadKind`/`LeadStatus`/`AlertFrequency` enums; `new_lead` +
+  `saved_search_match` notification types; reverse relations. `prisma generate` clean.
+- ✅ **Leads module** (`modules/leads/*`): public `POST /leads` — rate-limited (8/10min per
+  IP) + honeypot anti-spam, published-listing check, transactional write → agent in-app
+  notification → **queued email delivery with retry** (`queues/leads.queue.ts`, 5 attempts
+  exp-backoff, idempotent on `deliveredAt`). Agent inbox `GET /leads`, `GET /leads/stats`,
+  `PATCH /leads/:id/status` with role + ownership checks.
+- ✅ **Saved-searches module** (`modules/saved-searches/*`): CRUD (auth) + a **15-min BullMQ
+  matcher** that runs new published listings against each saved search's criteria since its
+  watermark → Resend digest + in-app notification, advancing the watermark only on success.
+- ✅ **Email templates** (`utils/mail.ts`): lead-notification + saved-search-alert (HTML,
+  env-gated no-op when `RESEND_API_KEY` unset). Added `WEB_APP_URL` for links.
+- ✅ Wishlist service now returns the shared `ListingCard` contract (web reuse). Backend
+  `tsc` clean.
+
+Web:
+- ✅ **Seeker auth**: httpOnly-cookie session over the backend JWT (`server/auth.ts`),
+  `/login` + `/register` pages + server actions, logout, and a **`proxy.ts`** route guard
+  (Next 16 middleware→proxy rename) for `/favorites`, `/saved-searches`, `/account`.
+- ✅ **SEO-preserving personalization**: the shared `(public)` layout stays static and
+  content pages (home, listing, city) keep ISR — the header account menu and enquiry-form
+  prefill hydrate client-side from a `/api/me` route handler instead of `cookies()`. Verified
+  by `next build`: `/` static, `/listing/[slug]` + `/homes/[city]` unchanged.
+- ✅ **Favorites**: optimistic `WishlistHeart` → `/wishlist/toggle` (auth redirect when
+  signed out), `/favorites` page.
+- ✅ **Saved searches**: "Save search" on results (captures the URL params), `/saved-searches`
+  manage page (per-row alert toggle + delete).
+- ✅ **Lead capture**: `EnquiryForm` (contact / viewing-request, honeypot, seeker prefill) →
+  `POST /leads`; agent `/dashboard/leads` wired to the real inbox with status updates +
+  counts. Web `tsc` + `next build` green.
+
+Remaining (needs user / follow-up):
+- ⏳ Provision the DB + `.env` (still gated from Phase 1), then verify the exit criteria live:
+  sign up → save search → favorite → enquire → agent email + inbox row → new matching listing
+  triggers an alert email.
+- ⏳ Set `RESEND_API_KEY` (+ verified domain) for real email delivery; unset = logged no-op.
+- ↪ Deferred to Phase 4: agent onboarding/auth UI polish, lead assignment/threads, "search as
+  I move the map" live refetch, daily-digest batching (only `instant` matcher runs today).
+
 ## Changelog
 | Date | Change |
 |---|---|
@@ -197,3 +241,4 @@ Remaining (needs user):
 | 2026-08-19 | Path A **step 5 — DONE (Path A complete)** — repointed the web seam to the backend API: shared contracts in `packages/shared` (`listingCardSchema`, `searchParams/Response`), web API client + `searchListings` seam (`apps/web/src/server/*`), removed the Supabase adapter/deps, added a `/search` page. **Verified full stack live in-browser**: `/search?q=austin` → web seam → Express `GET /api/v1/listings` → PostGIS → rendered cards (Postgres + Redis + Next all running). Whole-workspace `tsc` + web build clean. |
 | 2026-08-19 | Path A **step 4** — auth adaptation: roles renamed `guest/host → seeker/agent` (enum + middleware + `authorize()` + notifications + swagger + chat labels); `phone` made optional; added OTP-free **email-first register** (`POST /auth/register-email`, seeker/agent, tokens issued immediately) alongside the existing phone/email login. **Verified** vs local DB: register (phone null) → login → JWT role correct; wrong-password + duplicate-email rejected. (Stale listings Swagger JSDoc left as cosmetic debt.) |
 | 2026-08-19 | Path A **step 3** — PostGIS search on the Prisma Postgres: `prisma/sql/0001_postgis_search.sql` (geom + FTS columns, GiST/GIN indexes, `search_listings()`/facets on the `"Listing"` table) + `src/search/engine.ts` (`SearchEngine` via `$queryRaw`). Retired the interim Prisma search; added `bbox` map-bounds param. **Verified end-to-end** against local Postgres+PostGIS: `prisma db push` → apply SQL → seed → search (full-text, filters, bbox, facets, draft-exclusion) correct via both psql and the TS engine. Removed stale ToJoin migrations (schema via `db push` for now). |
+| 2026-08-24 | **Phase 3 executed** — accounts & leads. Backend: `Lead` + `SavedSearch` models/enums; leads module (rate-limited + honeypot public submit → txn write + notification + retrying email queue; agent inbox); saved-searches module + 15-min BullMQ alert matcher; lead + alert email templates. Web: httpOnly-cookie seeker auth (login/register/logout, `proxy.ts` guard), favorites (optimistic heart + page), saved searches (save + manage), lead capture form, agent inbox wired to real data. Personalization hydrates client-side via `/api/me` so listing/city pages keep ISR. Backend + web `tsc` and `next build` green; live DB verification still gated on provisioning. |
