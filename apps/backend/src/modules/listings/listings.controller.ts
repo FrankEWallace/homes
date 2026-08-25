@@ -1,6 +1,6 @@
 import type { RequestHandler } from 'express';
 import * as listingsService from './listings.service';
-import { CreateListingSchema, UpdateListingSchema, ListingQuerySchema } from './listings.schemas';
+import { CreateListingSchema, UpdateListingSchema, ListingQuerySchema, ImportCsvSchema } from './listings.schemas';
 import { sendSuccess, sendCreated } from '../../utils/response';
 
 const p = (v: string | string[]): string => String(v);
@@ -56,6 +56,25 @@ export const getMyListings: RequestHandler = async (req, res, next) => {
   try {
     const listings = await listingsService.getMyListings(req.user!.sub);
     sendSuccess(res, listings);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getAnalytics: RequestHandler = async (req, res, next) => {
+  try {
+    const analytics = await listingsService.getAgentAnalytics(req.user!.sub);
+    sendSuccess(res, analytics);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const importListings: RequestHandler = async (req, res, next) => {
+  try {
+    const { csv } = ImportCsvSchema.parse(req.body);
+    const result = await listingsService.importListings(req.user!.sub, csv);
+    sendSuccess(res, result, 'Import complete');
   } catch (err) {
     next(err);
   }

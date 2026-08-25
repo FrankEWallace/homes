@@ -36,11 +36,16 @@ export default async function AgentListingsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Listings</h1>
           <p className="text-muted-foreground mt-1 text-sm">Manage your published and draft listings.</p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/listings/new">
-            <Plus className="size-4" /> New listing
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href="/dashboard/listings/import">Import CSV</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/listings/new">
+              <Plus className="size-4" /> New listing
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {listings.length === 0 ? (
