@@ -269,10 +269,12 @@ router.get('/types', ctrl.listListingTypes);
 router.get('/', ctrl.searchListings);
 
 router.get('/mine', authenticate, authorize('agent'), ctrl.getMyListings);
+router.get('/analytics', authenticate, authorize('agent'), ctrl.getAnalytics);
 router.get('/:id', optionalAuthenticate, ctrl.getListing);
 
 // ── Agent (host) ────────────────────────────────────────────────────────────────
 router.post('/', authenticate, authorize('agent'), ctrl.createListing);
+router.post('/import', authenticate, authorize('agent'), ctrl.importListings);
 router.put('/:id', authenticate, authorize('agent'), ctrl.updateListing);
 router.delete('/:id', authenticate, authorize('agent'), ctrl.deleteListing);
 router.post('/:id/publish', authenticate, authorize('agent'), ctrl.publishListing);

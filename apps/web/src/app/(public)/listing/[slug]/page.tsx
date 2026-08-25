@@ -5,6 +5,7 @@ import { getListing } from "@/server/listings";
 import { formatCurrency, getInitials } from "@/lib/utils";
 import { WishlistHeart } from "@/components/marketplace/wishlist-heart";
 import { SearchMap } from "@/components/marketplace/search-map";
+import { EnquiryForm } from "@/components/marketplace/enquiry-form";
 
 function isRemote(src: string | undefined): src is string {
   return !!src && /^https?:\/\//.test(src);
@@ -69,7 +70,7 @@ export default async function ListingPage({ params }: PageProps<"/listing/[slug]
           </h1>
           <p className="text-foggy mt-1 text-[14px]">{where}</p>
         </div>
-        <WishlistHeart className="mt-1 shrink-0" />
+        <WishlistHeart listingId={listing.id} className="mt-1 shrink-0" />
       </div>
 
       {/* Gallery */}
@@ -169,21 +170,9 @@ export default async function ListingPage({ params }: PageProps<"/listing/[slug]
                 <p className="text-foggy text-[13px]">Listing agent</p>
               </div>
             </div>
-            <button
-              type="button"
-              className="bg-hof mt-4 h-11 w-full rounded-full text-[14px] font-medium text-white transition-opacity hover:opacity-90"
-            >
-              Contact agent
-            </button>
-            <button
-              type="button"
-              className="border-hof text-hof hover:bg-faint mt-2 h-11 w-full rounded-full border text-[14px] font-medium transition-colors"
-            >
-              Request a viewing
-            </button>
-            <p className="text-foggy mt-3 text-center text-[12px]">
-              Enquiry delivery is wired in Phase 3.
-            </p>
+            <div className="mt-4">
+              <EnquiryForm listingId={listing.id} listingTitle={listing.title} />
+            </div>
           </div>
         </aside>
       </div>

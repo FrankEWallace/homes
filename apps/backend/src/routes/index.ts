@@ -5,6 +5,8 @@ import { notificationsRouter } from '../modules/notifications/notifications.rout
 import { chatRouter } from '../modules/chat/chat.router';
 import { wishlistRouter } from '../modules/wishlist/wishlist.router';
 import { citiesRouter } from '../modules/cities/cities.router';
+import { leadsRouter } from '../modules/leads/leads.router';
+import { savedSearchesRouter } from '../modules/saved-searches/saved-searches.router';
 
 const router = Router();
 
@@ -39,5 +41,7 @@ router.use('/listings', listingsRouter);
 router.use('/notifications', notificationsRouter);
 router.use('/chat', chatRouter);
 router.use('/wishlist', wishlistRouter);
+router.use('/leads', leadsRouter);
+router.use('/saved-searches', savedSearchesRouter);
 
 export { router };

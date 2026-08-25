@@ -38,17 +38,40 @@ export async function getWishlist(userId: string) {
           rentPeriod: true,
           bedrooms: true,
           bathrooms: true,
+          areaSqft: true,
           city: true,
+          region: true,
+          type: true,
+          isFeatured: true,
+          longitude: true,
+          latitude: true,
           images: true,
-          averageRating: true,
-          reviewCount: true,
         },
       },
     },
     orderBy: { createdAt: 'desc' },
   });
 
-  return wishlists.map((w) => w.listing);
+  // Map to the shared `ListingCard` contract so the web reuses the search card.
+  return wishlists.map(({ listing: l }) => ({
+    id: l.id,
+    slug: l.slug,
+    title: l.title,
+    tenure: l.tenure,
+    price: Number(l.priceAmount),
+    currency: l.priceCurrency,
+    rentPeriod: l.rentPeriod ?? null,
+    bedrooms: l.bedrooms ?? null,
+    bathrooms: l.bathrooms != null ? Number(l.bathrooms) : null,
+    areaSqft: l.areaSqft != null ? Number(l.areaSqft) : null,
+    city: l.city ?? null,
+    region: l.region ?? null,
+    propertyType: l.type ?? null,
+    isFeatured: l.isFeatured,
+    lng: l.longitude != null ? Number(l.longitude) : null,
+    lat: l.latitude != null ? Number(l.latitude) : null,
+    primaryPhoto: l.images[0] ?? null,
+  }));
 }
 
 export async function getWishlistIds(userId: string) {

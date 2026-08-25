@@ -52,6 +52,44 @@ export const CreateListingSchema = z
 
 export const UpdateListingSchema = CreateListingSchema.innerType().partial();
 
+// ─── CSV bulk import ──────────────────────────────────────────────────────────
+
+const emptyToUndef = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v);
+
+/** One row from an uploaded CSV. Lenient coercion; images are `;`-separated URLs. */
+export const ImportRowSchema = z
+  .object({
+    title: z.string().min(3).max(200),
+    type: z.string().min(1),
+    tenure: z.enum(['sale', 'rent']),
+    description: z.string().min(20).max(5000),
+    priceamount: z.coerce.number().positive(),
+    pricecurrency: z.preprocess(emptyToUndef, z.string().length(3).default('USD')),
+    rentperiod: z.preprocess(emptyToUndef, z.enum(['week', 'month', 'year']).optional()),
+    bedrooms: z.preprocess(emptyToUndef, z.coerce.number().int().min(0).max(50).optional()),
+    bathrooms: z.preprocess(emptyToUndef, z.coerce.number().min(0).max(50).optional()),
+    areasqft: z.preprocess(emptyToUndef, z.coerce.number().positive().optional()),
+    address: z.preprocess(emptyToUndef, z.string().max(500).optional()),
+    city: z.string().min(2).max(100),
+    region: z.preprocess(emptyToUndef, z.string().max(100).optional()),
+    postalcode: z.preprocess(emptyToUndef, z.string().max(20).optional()),
+    country: z.preprocess(emptyToUndef, z.string().length(2).default('US')),
+    latitude: z.preprocess(emptyToUndef, z.coerce.number().min(-90).max(90).optional()),
+    longitude: z.preprocess(emptyToUndef, z.coerce.number().min(-180).max(180).optional()),
+    images: z.preprocess(emptyToUndef, z.string().optional()),
+  })
+  .superRefine((data, ctx) => {
+    if (data.tenure === 'rent' && !data.rentperiod) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['rentperiod'], message: 'rent needs rentPeriod' });
+    }
+  });
+
+export type ImportRowInput = z.infer<typeof ImportRowSchema>;
+
+export const ImportCsvSchema = z.object({
+  csv: z.string().min(1, 'CSV content is required').max(2_000_000),
+});
+
 export const ListingQuerySchema = z.object({
   tenure: z.enum(['sale', 'rent']).optional(),
   type: z.string().optional(), // property type

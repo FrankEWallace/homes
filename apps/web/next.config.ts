@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "res.cloudinary.com" },
+      // Dev-only: local backend media fallback (./uploads served at /uploads).
+      ...(process.env.NODE_ENV !== "production"
+        ? [{ protocol: "http" as const, hostname: "localhost", port: "4000", pathname: "/uploads/**" }]
+        : []),
     ],
   },
 };

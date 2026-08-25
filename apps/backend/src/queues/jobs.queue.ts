@@ -1,6 +1,7 @@
 import { Queue, Worker } from 'bullmq';
 import { redis } from '../config/redis';
 import { prisma } from '../config/prisma';
+import { runSavedSearchAlerts } from '../modules/saved-searches/saved-searches.matcher';
 
 const QUEUE_NAME = 'scheduled-jobs';
 
@@ -23,6 +24,7 @@ export function startJobsWorker() {
     QUEUE_NAME,
     async (job) => {
       if (job.data.type === 'expire_boosts') return expireStaleBoosts();
+      if (job.data.type === 'saved_search_alerts') return runSavedSearchAlerts();
       return undefined;
     },
     { connection: redis },
@@ -42,5 +44,12 @@ export async function scheduleRecurringJobs() {
     'expire-boosts',
     { type: 'expire_boosts' },
     { repeat: { pattern: '0 2 * * *' }, jobId: 'expire-boosts-recurring' },
+  );
+
+  // Saved-search alerts: every 15 minutes (instant-ish digests).
+  await jobsQueue.add(
+    'saved-search-alerts',
+    { type: 'saved_search_alerts' },
+    { repeat: { pattern: '*/15 * * * *' }, jobId: 'saved-search-alerts-recurring' },
   );
 }

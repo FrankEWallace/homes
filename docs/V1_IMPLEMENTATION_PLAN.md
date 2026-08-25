@@ -186,6 +186,102 @@ Remaining (needs user):
 
 **Phase 2 is complete.**
 
+## Phase 3 progress (2026-08-24)
+
+Backend:
+- ✅ **Data model**: `Lead` (kind/status, denormalised `agentId`, optional `seekerId`,
+  `deliveredAt`) + `SavedSearch` (JSON `query`, `notify`, `frequency`, `lastCheckedAt`
+  watermark); `LeadKind`/`LeadStatus`/`AlertFrequency` enums; `new_lead` +
+  `saved_search_match` notification types; reverse relations. `prisma generate` clean.
+- ✅ **Leads module** (`modules/leads/*`): public `POST /leads` — rate-limited (8/10min per
+  IP) + honeypot anti-spam, published-listing check, transactional write → agent in-app
+  notification → **queued email delivery with retry** (`queues/leads.queue.ts`, 5 attempts
+  exp-backoff, idempotent on `deliveredAt`). Agent inbox `GET /leads`, `GET /leads/stats`,
+  `PATCH /leads/:id/status` with role + ownership checks.
+- ✅ **Saved-searches module** (`modules/saved-searches/*`): CRUD (auth) + a **15-min BullMQ
+  matcher** that runs new published listings against each saved search's criteria since its
+  watermark → Resend digest + in-app notification, advancing the watermark only on success.
+- ✅ **Email templates** (`utils/mail.ts`): lead-notification + saved-search-alert (HTML,
+  env-gated no-op when `RESEND_API_KEY` unset). Added `WEB_APP_URL` for links.
+- ✅ Wishlist service now returns the shared `ListingCard` contract (web reuse). Backend
+  `tsc` clean.
+
+Web:
+- ✅ **Seeker auth**: httpOnly-cookie session over the backend JWT (`server/auth.ts`),
+  `/login` + `/register` pages + server actions, logout, and a **`proxy.ts`** route guard
+  (Next 16 middleware→proxy rename) for `/favorites`, `/saved-searches`, `/account`.
+- ✅ **SEO-preserving personalization**: the shared `(public)` layout stays static and
+  content pages (home, listing, city) keep ISR — the header account menu and enquiry-form
+  prefill hydrate client-side from a `/api/me` route handler instead of `cookies()`. Verified
+  by `next build`: `/` static, `/listing/[slug]` + `/homes/[city]` unchanged.
+- ✅ **Favorites**: optimistic `WishlistHeart` → `/wishlist/toggle` (auth redirect when
+  signed out), `/favorites` page.
+- ✅ **Saved searches**: "Save search" on results (captures the URL params), `/saved-searches`
+  manage page (per-row alert toggle + delete).
+- ✅ **Lead capture**: `EnquiryForm` (contact / viewing-request, honeypot, seeker prefill) →
+  `POST /leads`; agent `/dashboard/leads` wired to the real inbox with status updates +
+  counts. Web `tsc` + `next build` green.
+
+Hardening (2026-08-24, DB-free):
+- ✅ **Shared contracts** — lead + saved-search Zod schemas moved to `@homes/shared`; web seam
+  imports them. (Backend still mirrors in zod v3 — full single-source needs a backend
+  v3→v4 migration, tracked as follow-up.)
+- ✅ **Tests** — Jest config + 29 DB-free tests (schema validation, matcher, mail escaping,
+  mocked-Prisma `createLead`).
+- ✅ **Loading/error states** — skeletons + error boundaries for the new routes; branded 404.
+- ✅ **CI** — `.github/workflows/ci.yml` gates PRs on build + typecheck + tests (lint advisory).
+
+**Exit criteria — VERIFIED LIVE (2026-08-25)** against local Postgres 17 + PostGIS 3.5 + Redis
+(`homes_dev`, seeded): seeker login → favorite (wishlist row) → save search → submit enquiry +
+viewing request → **agent inbox shows the lead** + `new_lead` in-app notification + email
+delivery worker ran (`deliveredAt` set; Resend unset ⇒ logged no-op) → inserted a new matching
+Austin listing → **matcher fired** (`processed:1, notified:1`, `saved_search_match` notification,
+watermark advanced). Web UI verified in-browser: search renders live results incl. the new
+listing; `proxy.ts` guard redirects `/favorites` + `/saved-searches` → `/login`.
+- 🐛 **Fixed during verification:** BullMQ rejects custom job ids containing `:` — lead-delivery
+  emails failed to enqueue (`jobId: lead:<id>` → `lead-<id>`). Lead row + inbox were unaffected.
+
+Remaining (follow-up):
+- ⏳ Set `RESEND_API_KEY` (+ verified domain) for real email delivery; unset = logged no-op.
+- ⏳ Backend zod v3→v4 migration for true single-source contracts across the API boundary.
+- ↪ Deferred to Phase 4: agent onboarding/auth UI polish, lead assignment/threads, "search as
+  I move the map" live refetch, daily-digest batching (only `instant` matcher runs today).
+
+## Phase 4 progress (2026-08-25)
+
+Core (done + verified live):
+- ✅ **Agent auth gating** — `proxy.ts` guards `/dashboard` on session; the `(agent)` layout
+  enforces agent/admin role (redirects otherwise) and shows the agency name. Backend still
+  re-checks role + ownership on every mutation.
+- ✅ **Listing management** — agent seam (`getMyListings`/`getMyListing`/`getListingTypes`) +
+  server actions (create/update/publish/unpublish/delete). Real `/dashboard/listings` table
+  (status badges + row-action menu), shared new/edit form with per-field validation (saves a
+  draft; publish from the list). Backend agent CRUD was already in place from the ToJoin port.
+- ✅ **Agency profile** — `/dashboard/settings` wired to `PATCH /auth/me` (name, agency, bio).
+- **Verified live**: agent login → dashboard lists real listings; create → publish via the agent
+  API surfaces in the dashboard **and public search** (PostGIS `geom` trigger populates); delete
+  works; guard redirects when signed out. Web `next build` green.
+- Note: dropped `revalidateTag` (Next 16 requires a cache profile) — public freshness rides the
+  existing 30–60s ISR windows ("within minutes"), matching the exit criterion.
+
+Follow-on slices (done + verified live, 2026-08-25):
+- ✅ **Geocoding on save** — keyless OSM Nominatim fills lat/lng from the address on
+  create/update/import when coords are absent (verified: `1100 Congress Ave` → real coords).
+- ✅ **Listing analytics** (F12) — `GET /listings/analytics` (views/enquiries/saved per listing);
+  `/dashboard/analytics` stat tiles + Recharts bar chart (reflects the Phase 3 lead/favorite).
+- ✅ **Bulk CSV import** (F9) — quote-aware parser (+tests), per-row validation, (title,city)
+  dedupe, geocode, drafts; `/dashboard/listings/import` with a result summary. Verified:
+  1 created / 1 duplicate skipped / 1 invalid reported.
+- ✅ **Binary media upload** — agent image upload wired to `POST /listings/:id/images`; backend
+  gains a **local-disk dev fallback** (served at `/uploads`) so it works without cloud creds,
+  R2/Cloudinary in prod. Unified with manual URL entry in the listing form. Verified: PNG upload
+  → stored → served 200 → removable.
+
+**Phase 4 exit criteria met:** an agent registers/signs in, publishes a listing (manual **and**
+CSV), it appears in public search within the ISR window (geo trigger populated), and enquiries
+land in their inbox (Phase 3). Remaining polish: media reorder/drag-drop, moderation gate,
+per-listing view tracking increment.
+
 ## Changelog
 | Date | Change |
 |---|---|
@@ -197,3 +293,4 @@ Remaining (needs user):
 | 2026-08-19 | Path A **step 5 — DONE (Path A complete)** — repointed the web seam to the backend API: shared contracts in `packages/shared` (`listingCardSchema`, `searchParams/Response`), web API client + `searchListings` seam (`apps/web/src/server/*`), removed the Supabase adapter/deps, added a `/search` page. **Verified full stack live in-browser**: `/search?q=austin` → web seam → Express `GET /api/v1/listings` → PostGIS → rendered cards (Postgres + Redis + Next all running). Whole-workspace `tsc` + web build clean. |
 | 2026-08-19 | Path A **step 4** — auth adaptation: roles renamed `guest/host → seeker/agent` (enum + middleware + `authorize()` + notifications + swagger + chat labels); `phone` made optional; added OTP-free **email-first register** (`POST /auth/register-email`, seeker/agent, tokens issued immediately) alongside the existing phone/email login. **Verified** vs local DB: register (phone null) → login → JWT role correct; wrong-password + duplicate-email rejected. (Stale listings Swagger JSDoc left as cosmetic debt.) |
 | 2026-08-19 | Path A **step 3** — PostGIS search on the Prisma Postgres: `prisma/sql/0001_postgis_search.sql` (geom + FTS columns, GiST/GIN indexes, `search_listings()`/facets on the `"Listing"` table) + `src/search/engine.ts` (`SearchEngine` via `$queryRaw`). Retired the interim Prisma search; added `bbox` map-bounds param. **Verified end-to-end** against local Postgres+PostGIS: `prisma db push` → apply SQL → seed → search (full-text, filters, bbox, facets, draft-exclusion) correct via both psql and the TS engine. Removed stale ToJoin migrations (schema via `db push` for now). |
+| 2026-08-24 | **Phase 3 executed** — accounts & leads. Backend: `Lead` + `SavedSearch` models/enums; leads module (rate-limited + honeypot public submit → txn write + notification + retrying email queue; agent inbox); saved-searches module + 15-min BullMQ alert matcher; lead + alert email templates. Web: httpOnly-cookie seeker auth (login/register/logout, `proxy.ts` guard), favorites (optimistic heart + page), saved searches (save + manage), lead capture form, agent inbox wired to real data. Personalization hydrates client-side via `/api/me` so listing/city pages keep ISR. Backend + web `tsc` and `next build` green; live DB verification still gated on provisioning. |

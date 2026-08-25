@@ -7,6 +7,7 @@ import { swaggerSpec } from './config/swagger';
 import { helmetMiddleware, corsMiddleware, globalRateLimit } from './middleware/security';
 import { notFound, errorHandler } from './middleware/errorHandler';
 import { router } from './routes/index';
+import { LOCAL_UPLOAD_DIR } from './utils/upload';
 import { env } from './config/env';
 
 const app = express();
@@ -36,6 +37,11 @@ if (env.NODE_ENV !== 'test') {
 
 // ─── API Docs ─────────────────────────────────────────────────────────────────
 app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// ─── Local dev media (only used when no cloud storage is configured) ─────────
+if (env.NODE_ENV !== 'production') {
+  app.use('/uploads', express.static(LOCAL_UPLOAD_DIR));
+}
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use('/api/v1', router);

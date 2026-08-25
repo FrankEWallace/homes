@@ -4,6 +4,9 @@ import { AppError } from '../../middleware/errorHandler';
 import { uploadToCloudinary } from '../../utils/upload';
 import { paginate } from '../../utils/response';
 import { searchEngine } from '../../search/engine';
+import { geocodeAddress } from '../../utils/geocode';
+import { parseCsv } from '../../utils/csv';
+import { ImportRowSchema } from './listings.schemas';
 import type { CreateListingInput, UpdateListingInput, ListingQueryInput } from './listings.schemas';
 
 function generateSlug(title: string): string {
@@ -20,6 +23,16 @@ function generateSlug(title: string): string {
 export async function createListing(hostId: string, input: CreateListingInput) {
   const { tagIds, metadata, priceAmount, ...data } = input;
   const slug = generateSlug(input.title);
+
+  // Fill coordinates from the address when the agent didn't provide them, so the
+  // listing lands on the map + geo search (geom is trigger-maintained from lat/lng).
+  if (data.latitude == null || data.longitude == null) {
+    const geo = await geocodeAddress(data);
+    if (geo) {
+      data.latitude = geo.lat;
+      data.longitude = geo.lng;
+    }
+  }
 
   return prisma.listing.create({
     data: {
@@ -93,6 +106,140 @@ export async function searchListings(input: ListingQueryInput) {
   };
 }
 
+/**
+ * Bulk-import listings from CSV (F9). Each row is validated, deduped against the
+ * agent's existing (title, city) pairs, geocoded when coordinates are absent, and
+ * created as a draft. Returns a per-row summary so the agent can fix and re-upload.
+ */
+const IMPORT_ROW_LIMIT = 200;
+
+export async function importListings(hostId: string, csv: string) {
+  const rows = parseCsv(csv);
+  if (rows.length === 0) throw new AppError(400, 'No data rows found in the CSV');
+  if (rows.length > IMPORT_ROW_LIMIT) {
+    throw new AppError(400, `Too many rows (${rows.length}). Import at most ${IMPORT_ROW_LIMIT} at a time.`);
+  }
+
+  const existing = await prisma.listing.findMany({
+    where: { hostId },
+    select: { title: true, city: true },
+  });
+  const seen = new Set(existing.map((l) => `${l.title.toLowerCase()}|${l.city.toLowerCase()}`));
+
+  const errors: { row: number; message: string }[] = [];
+  let created = 0;
+  let skipped = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    const rowNum = i + 2; // 1-based + header row
+    const parsed = ImportRowSchema.safeParse(rows[i]);
+    if (!parsed.success) {
+      errors.push({ row: rowNum, message: parsed.error.issues[0]?.message ?? 'Invalid row' });
+      continue;
+    }
+    const r = parsed.data;
+
+    const key = `${r.title.toLowerCase()}|${r.city.toLowerCase()}`;
+    if (seen.has(key)) {
+      skipped += 1;
+      continue;
+    }
+    seen.add(key);
+
+    const images = (r.images ?? '')
+      .split(/[;\n]/)
+      .map((s) => s.trim())
+      .filter((s) => /^https?:\/\//.test(s));
+
+    let latitude = r.latitude ?? null;
+    let longitude = r.longitude ?? null;
+    if (latitude == null || longitude == null) {
+      const geo = await geocodeAddress({
+        address: r.address,
+        city: r.city,
+        region: r.region,
+        postalCode: r.postalcode,
+        country: r.country,
+      });
+      if (geo) {
+        latitude = geo.lat;
+        longitude = geo.lng;
+      }
+    }
+
+    try {
+      await prisma.listing.create({
+        data: {
+          hostId,
+          slug: generateSlug(r.title),
+          type: r.type,
+          tenure: r.tenure,
+          title: r.title,
+          description: r.description,
+          priceAmount: new Prisma.Decimal(r.priceamount),
+          priceCurrency: r.pricecurrency,
+          rentPeriod: r.rentperiod,
+          bedrooms: r.bedrooms,
+          bathrooms: r.bathrooms,
+          areaSqft: r.areasqft,
+          address: r.address,
+          city: r.city,
+          region: r.region,
+          postalCode: r.postalcode,
+          country: r.country,
+          latitude,
+          longitude,
+          images,
+        },
+      });
+      created += 1;
+    } catch (err) {
+      errors.push({ row: rowNum, message: (err as Error).message });
+    }
+  }
+
+  return { total: rows.length, created, skipped, errors };
+}
+
+/** Per-agent listing analytics (F12): views, enquiries, and saves per listing. */
+export async function getAgentAnalytics(hostId: string) {
+  const listings = await prisma.listing.findMany({
+    where: { hostId },
+    orderBy: { viewCount: 'desc' },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      status: true,
+      viewCount: true,
+      _count: { select: { leads: true, wishlistedBy: true } },
+    },
+  });
+
+  const rows = listings.map((l) => ({
+    id: l.id,
+    title: l.title,
+    slug: l.slug,
+    status: l.status,
+    views: l.viewCount,
+    leads: l._count.leads,
+    saved: l._count.wishlistedBy,
+  }));
+
+  const totals = rows.reduce(
+    (acc, r) => {
+      acc.views += r.views;
+      acc.leads += r.leads;
+      acc.saved += r.saved;
+      if (r.status === 'published') acc.published += 1;
+      return acc;
+    },
+    { listings: rows.length, published: 0, views: 0, leads: 0, saved: 0 },
+  );
+
+  return { totals, listings: rows };
+}
+
 export async function getMyListings(hostId: string) {
   return prisma.listing.findMany({
     where: { hostId },
@@ -107,6 +254,34 @@ export async function updateListing(id: string, hostId: string, role: string, in
   if (role !== 'admin' && listing.hostId !== hostId) throw new AppError(403, 'You do not own this listing');
 
   const { tagIds, metadata, priceAmount, ...data } = input;
+
+  // Re-geocode when the address changed and the agent didn't deliberately edit the
+  // coordinates. The edit form re-sends the stored lat/lng, so "coords absent" isn't
+  // enough — treat coords that still match the stored values (or are absent) as
+  // "follow the new address", and only skip when they were actually changed by hand.
+  const addressTouched =
+    data.address !== undefined ||
+    data.city !== undefined ||
+    data.region !== undefined ||
+    data.postalCode !== undefined;
+  const storedLat = listing.latitude != null ? Number(listing.latitude) : null;
+  const storedLng = listing.longitude != null ? Number(listing.longitude) : null;
+  const submittedLat = data.latitude != null ? Number(data.latitude) : null;
+  const submittedLng = data.longitude != null ? Number(data.longitude) : null;
+  const coordsUntouched = submittedLat === storedLat && submittedLng === storedLng;
+  if (addressTouched && coordsUntouched) {
+    const geo = await geocodeAddress({
+      address: data.address ?? listing.address,
+      city: data.city ?? listing.city,
+      region: data.region ?? listing.region,
+      postalCode: data.postalCode ?? listing.postalCode,
+      country: data.country ?? listing.country,
+    });
+    if (geo) {
+      data.latitude = geo.lat;
+      data.longitude = geo.lng;
+    }
+  }
 
   return prisma.listing.update({
     where: { id },

@@ -8,7 +8,13 @@ function isRemote(src: string | null): src is string {
   return !!src && /^https?:\/\//.test(src);
 }
 
-export function ListingCard({ listing: l }: { listing: ListingCardData }) {
+export function ListingCard({
+  listing: l,
+  saved = false,
+}: {
+  listing: ListingCardData;
+  saved?: boolean;
+}) {
   const location = [l.city, l.region].filter(Boolean).join(", ");
   const specs = [
     l.bedrooms != null ? `${l.bedrooms} bd` : null,
@@ -39,7 +45,7 @@ export function ListingCard({ listing: l }: { listing: ListingCardData }) {
             Featured
           </span>
         )}
-        <WishlistHeart className="absolute right-2 top-2" />
+        <WishlistHeart listingId={l.id} initialSaved={saved} className="absolute right-2 top-2" />
       </div>
 
       {/* Meta — 12px gutter, no card padding */}
