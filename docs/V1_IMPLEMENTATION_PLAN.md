@@ -222,11 +222,28 @@ Web:
   `POST /leads`; agent `/dashboard/leads` wired to the real inbox with status updates +
   counts. Web `tsc` + `next build` green.
 
-Remaining (needs user / follow-up):
-- ⏳ Provision the DB + `.env` (still gated from Phase 1), then verify the exit criteria live:
-  sign up → save search → favorite → enquire → agent email + inbox row → new matching listing
-  triggers an alert email.
+Hardening (2026-08-24, DB-free):
+- ✅ **Shared contracts** — lead + saved-search Zod schemas moved to `@homes/shared`; web seam
+  imports them. (Backend still mirrors in zod v3 — full single-source needs a backend
+  v3→v4 migration, tracked as follow-up.)
+- ✅ **Tests** — Jest config + 29 DB-free tests (schema validation, matcher, mail escaping,
+  mocked-Prisma `createLead`).
+- ✅ **Loading/error states** — skeletons + error boundaries for the new routes; branded 404.
+- ✅ **CI** — `.github/workflows/ci.yml` gates PRs on build + typecheck + tests (lint advisory).
+
+**Exit criteria — VERIFIED LIVE (2026-08-25)** against local Postgres 17 + PostGIS 3.5 + Redis
+(`homes_dev`, seeded): seeker login → favorite (wishlist row) → save search → submit enquiry +
+viewing request → **agent inbox shows the lead** + `new_lead` in-app notification + email
+delivery worker ran (`deliveredAt` set; Resend unset ⇒ logged no-op) → inserted a new matching
+Austin listing → **matcher fired** (`processed:1, notified:1`, `saved_search_match` notification,
+watermark advanced). Web UI verified in-browser: search renders live results incl. the new
+listing; `proxy.ts` guard redirects `/favorites` + `/saved-searches` → `/login`.
+- 🐛 **Fixed during verification:** BullMQ rejects custom job ids containing `:` — lead-delivery
+  emails failed to enqueue (`jobId: lead:<id>` → `lead-<id>`). Lead row + inbox were unaffected.
+
+Remaining (follow-up):
 - ⏳ Set `RESEND_API_KEY` (+ verified domain) for real email delivery; unset = logged no-op.
+- ⏳ Backend zod v3→v4 migration for true single-source contracts across the API boundary.
 - ↪ Deferred to Phase 4: agent onboarding/auth UI polish, lead assignment/threads, "search as
   I move the map" live refetch, daily-digest batching (only `instant` matcher runs today).
 
