@@ -255,13 +255,21 @@ export async function updateListing(id: string, hostId: string, role: string, in
 
   const { tagIds, metadata, priceAmount, ...data } = input;
 
-  // Re-geocode when the address changed but no explicit coordinates were given.
+  // Re-geocode when the address changed and the agent didn't deliberately edit the
+  // coordinates. The edit form re-sends the stored lat/lng, so "coords absent" isn't
+  // enough — treat coords that still match the stored values (or are absent) as
+  // "follow the new address", and only skip when they were actually changed by hand.
   const addressTouched =
     data.address !== undefined ||
     data.city !== undefined ||
     data.region !== undefined ||
     data.postalCode !== undefined;
-  if (addressTouched && data.latitude == null && data.longitude == null) {
+  const storedLat = listing.latitude != null ? Number(listing.latitude) : null;
+  const storedLng = listing.longitude != null ? Number(listing.longitude) : null;
+  const submittedLat = data.latitude != null ? Number(data.latitude) : null;
+  const submittedLng = data.longitude != null ? Number(data.longitude) : null;
+  const coordsUntouched = submittedLat === storedLat && submittedLng === storedLng;
+  if (addressTouched && coordsUntouched) {
     const geo = await geocodeAddress({
       address: data.address ?? listing.address,
       city: data.city ?? listing.city,

@@ -26,8 +26,10 @@ describe('CreateLeadSchema', () => {
     expect(CreateLeadSchema.safeParse({ ...base, name: 'A' }).success).toBe(false);
   });
 
-  it('treats a filled honeypot as invalid (website must be empty)', () => {
-    expect(CreateLeadSchema.safeParse({ ...base, website: 'http://spam' }).success).toBe(false);
+  it('accepts a filled honeypot at the schema level (the service drops it)', () => {
+    // The honeypot is intentionally NOT rejected here — createLead() silently
+    // drops a filled `website` so bots get a fake success, not a 400 that reveals it.
+    expect(CreateLeadSchema.safeParse({ ...base, website: 'http://spam' }).success).toBe(true);
     expect(CreateLeadSchema.safeParse({ ...base, website: '' }).success).toBe(true);
   });
 

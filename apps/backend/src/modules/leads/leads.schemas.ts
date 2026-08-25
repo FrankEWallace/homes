@@ -16,8 +16,10 @@ export const CreateLeadSchema = z.object({
   message: z.string().min(10, 'Please add a short message').max(2000),
   preferredAt: z.coerce.date().optional(), // viewing_request slot
   source: z.string().max(40).default('web'),
-  // Honeypot — must stay empty.
-  website: z.string().max(0).optional(),
+  // Honeypot — real users never fill it. Accepted here so a filled value reaches
+  // the service, which silently drops it (a hard schema reject would reveal the
+  // honeypot to bots). See createLead().
+  website: z.string().optional(),
 });
 
 export type CreateLeadInput = z.infer<typeof CreateLeadSchema>;

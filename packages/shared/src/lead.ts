@@ -21,7 +21,7 @@ export const createLeadRequestSchema = z.object({
   message: z.string().min(10, "Please add a short message").max(2000),
   preferredAt: z.coerce.date().optional(),
   source: z.string().max(40).default("web"),
-  website: z.string().max(0).optional(), // honeypot — must stay empty
+  website: z.string().optional(), // honeypot — accepted, silently dropped server-side
 });
 export type CreateLeadRequest = z.infer<typeof createLeadRequestSchema>;
 
