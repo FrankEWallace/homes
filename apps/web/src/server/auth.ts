@@ -21,6 +21,7 @@ export interface SessionUser {
   role: "seeker" | "agent" | "admin";
   avatarUrl: string | null;
   businessName: string | null;
+  bio: string | null;
 }
 
 interface AuthResult {

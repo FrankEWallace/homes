@@ -6,7 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * call (CLAUDE.md rule 3). A stale/expired token still routes here and is
  * rejected server-side, sending the user back to sign in.
  */
-const PROTECTED = ["/favorites", "/saved-searches", "/account"];
+const PROTECTED = ["/favorites", "/saved-searches", "/account", "/dashboard"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -22,5 +22,10 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/favorites/:path*", "/saved-searches/:path*", "/account/:path*"],
+  matcher: [
+    "/favorites/:path*",
+    "/saved-searches/:path*",
+    "/account/:path*",
+    "/dashboard/:path*",
+  ],
 };
