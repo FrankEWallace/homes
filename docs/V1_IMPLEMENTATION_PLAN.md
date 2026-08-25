@@ -264,12 +264,23 @@ Core (done + verified live):
 - Note: dropped `revalidateTag` (Next 16 requires a cache profile) — public freshness rides the
   existing 30–60s ISR windows ("within minutes"), matching the exit criterion.
 
-Remaining Phase 4 slices (follow-up):
-- ⏳ **Listing analytics** (F12) — views / enquiries / saved per listing + Recharts dashboard.
-- ⏳ **Bulk CSV import** (F9) — upload + validate + normalize/geocode/dedupe.
-- ⏳ **Geocoding on save** — currently lat/lng is manual; add address→coords (keyless Nominatim).
-- ⏳ **Binary media upload** — drag-drop needs Cloudinary/R2 creds; images are URL-based for now.
-- ↪ Lead assignment/threads (list + status shipped in Phase 3).
+Follow-on slices (done + verified live, 2026-08-25):
+- ✅ **Geocoding on save** — keyless OSM Nominatim fills lat/lng from the address on
+  create/update/import when coords are absent (verified: `1100 Congress Ave` → real coords).
+- ✅ **Listing analytics** (F12) — `GET /listings/analytics` (views/enquiries/saved per listing);
+  `/dashboard/analytics` stat tiles + Recharts bar chart (reflects the Phase 3 lead/favorite).
+- ✅ **Bulk CSV import** (F9) — quote-aware parser (+tests), per-row validation, (title,city)
+  dedupe, geocode, drafts; `/dashboard/listings/import` with a result summary. Verified:
+  1 created / 1 duplicate skipped / 1 invalid reported.
+- ✅ **Binary media upload** — agent image upload wired to `POST /listings/:id/images`; backend
+  gains a **local-disk dev fallback** (served at `/uploads`) so it works without cloud creds,
+  R2/Cloudinary in prod. Unified with manual URL entry in the listing form. Verified: PNG upload
+  → stored → served 200 → removable.
+
+**Phase 4 exit criteria met:** an agent registers/signs in, publishes a listing (manual **and**
+CSV), it appears in public search within the ISR window (geo trigger populated), and enquiries
+land in their inbox (Phase 3). Remaining polish: media reorder/drag-drop, moderation gate,
+per-listing view tracking increment.
 
 ## Changelog
 | Date | Change |

@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState, useTransition } from "react";
+import { X } from "lucide-react";
 import { saveListingAction, type ListingFormState } from "@/server/actions/listings";
+import { uploadListingImagesAction } from "@/server/actions/upload-images";
 import type { AgentListing } from "@/server/agent-listings";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,7 +43,34 @@ export function ListingForm({
 }) {
   const [state, action, pending] = useActionState<ListingFormState, FormData>(saveListingAction, {});
   const [tenure, setTenure] = useState<"sale" | "rent">(listing?.tenure ?? "sale");
+  const [images, setImages] = useState<string[]>(listing?.images ?? []);
+  const [urlDraft, setUrlDraft] = useState("");
+  const [uploading, startUpload] = useTransition();
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const fe = state.fieldErrors ?? {};
+
+  const addUrl = () => {
+    const u = urlDraft.trim();
+    if (/^https?:\/\//.test(u) && !images.includes(u)) {
+      setImages((prev) => [...prev, u]);
+      setUrlDraft("");
+    }
+  };
+
+  const onUpload = () => {
+    setUploadError(null);
+    const files = fileRef.current?.files;
+    if (!listing || !files || files.length === 0) return;
+    const fd = new FormData();
+    for (const f of Array.from(files)) fd.append("images", f);
+    startUpload(async () => {
+      const r = await uploadListingImagesAction(listing.id, fd);
+      if (!r.ok) setUploadError(r.error ?? "Upload failed");
+      else if (r.images) setImages(r.images);
+      if (fileRef.current) fileRef.current.value = "";
+    });
+  };
 
   return (
     <form action={action} className="flex max-w-3xl flex-col gap-6">
@@ -163,20 +192,62 @@ export function ListingForm({
         <Textarea id="description" name="description" rows={6} defaultValue={listing?.description} required />
       </Field>
 
-      <Field
-        label="Image URLs"
-        htmlFor="images"
-        error={fe.images}
-        hint="One URL per line. (Drag-and-drop upload arrives with cloud storage.)"
-      >
-        <Textarea
-          id="images"
-          name="images"
-          rows={4}
-          placeholder="https://…/photo-1.jpg"
-          defaultValue={listing?.images.join("\n")}
-        />
-      </Field>
+      <div className="flex flex-col gap-2">
+        <Label>Images</Label>
+        {/* Submitted as newline-joined URLs — the action splits them back out. */}
+        <input type="hidden" name="images" value={images.join("\n")} />
+
+        {images.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {images.map((src) => (
+              <div key={src} className="group relative size-20 overflow-hidden rounded-md border">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt="" className="size-full object-cover" />
+                <button
+                  type="button"
+                  aria-label="Remove image"
+                  onClick={() => setImages((prev) => prev.filter((u) => u !== src))}
+                  className="bg-background/80 absolute right-0.5 top-0.5 grid size-5 place-items-center rounded-full border opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-xs">No images yet.</p>
+        )}
+        {fe.images ? <p className="text-destructive text-xs">{fe.images}</p> : null}
+
+        <div className="flex gap-2">
+          <Input
+            value={urlDraft}
+            onChange={(e) => setUrlDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addUrl();
+              }
+            }}
+            placeholder="Paste an image URL…"
+          />
+          <Button type="button" variant="outline" onClick={addUrl}>
+            Add URL
+          </Button>
+        </div>
+
+        {listing ? (
+          <div className="flex items-center gap-2">
+            <input ref={fileRef} type="file" accept="image/*" multiple className="text-sm" />
+            <Button type="button" variant="outline" onClick={onUpload} disabled={uploading}>
+              {uploading ? "Uploading…" : "Upload files"}
+            </Button>
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-xs">Save the draft first to upload image files.</p>
+        )}
+        {uploadError ? <p className="text-destructive text-xs">{uploadError}</p> : null}
+      </div>
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>

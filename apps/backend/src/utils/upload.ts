@@ -1,9 +1,30 @@
+import { promises as fs } from 'fs';
+import path from 'path';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { env } from '../config/env';
 import { AppError } from '../middleware/errorHandler';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+/** Absolute path to the local dev upload dir (served statically at /uploads). */
+export const LOCAL_UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+
+/**
+ * Dev-only fallback when neither R2 nor Cloudinary is configured: persist the
+ * file to ./uploads and return an absolute URL served by the API at /uploads.
+ * Never used in production (guarded by the caller).
+ */
+async function saveToLocalDisk(buffer: Buffer, folder: string, publicId?: string): Promise<string> {
+  const mime = detectMimeType(buffer);
+  const ext = getExtension(mime) || '.bin';
+  const id = (publicId && !publicId.includes('.') ? publicId : Math.random().toString(36).slice(2, 12)) + ext;
+  const dir = path.join(LOCAL_UPLOAD_DIR, folder);
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(path.join(dir, id), buffer);
+  const base = env.API_BASE_URL.replace(/\/$/, '');
+  return `${base}/uploads/${folder}/${id}`;
+}
 
 cloudinary.config({
   cloud_name: env.CLOUDINARY_CLOUD_NAME,
@@ -98,6 +119,10 @@ export async function uploadToCloudinary(
   }
 
   if (!env.CLOUDINARY_CLOUD_NAME) {
+    // Dev fallback: store on local disk so agents can upload without cloud creds.
+    if (env.NODE_ENV !== 'production') {
+      return saveToLocalDisk(buffer, folder, publicId);
+    }
     throw new AppError(503, 'Image upload service is not configured');
   }
 
