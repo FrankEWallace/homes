@@ -247,6 +247,30 @@ Remaining (follow-up):
 - ↪ Deferred to Phase 4: agent onboarding/auth UI polish, lead assignment/threads, "search as
   I move the map" live refetch, daily-digest batching (only `instant` matcher runs today).
 
+## Phase 4 progress (2026-08-25)
+
+Core (done + verified live):
+- ✅ **Agent auth gating** — `proxy.ts` guards `/dashboard` on session; the `(agent)` layout
+  enforces agent/admin role (redirects otherwise) and shows the agency name. Backend still
+  re-checks role + ownership on every mutation.
+- ✅ **Listing management** — agent seam (`getMyListings`/`getMyListing`/`getListingTypes`) +
+  server actions (create/update/publish/unpublish/delete). Real `/dashboard/listings` table
+  (status badges + row-action menu), shared new/edit form with per-field validation (saves a
+  draft; publish from the list). Backend agent CRUD was already in place from the ToJoin port.
+- ✅ **Agency profile** — `/dashboard/settings` wired to `PATCH /auth/me` (name, agency, bio).
+- **Verified live**: agent login → dashboard lists real listings; create → publish via the agent
+  API surfaces in the dashboard **and public search** (PostGIS `geom` trigger populates); delete
+  works; guard redirects when signed out. Web `next build` green.
+- Note: dropped `revalidateTag` (Next 16 requires a cache profile) — public freshness rides the
+  existing 30–60s ISR windows ("within minutes"), matching the exit criterion.
+
+Remaining Phase 4 slices (follow-up):
+- ⏳ **Listing analytics** (F12) — views / enquiries / saved per listing + Recharts dashboard.
+- ⏳ **Bulk CSV import** (F9) — upload + validate + normalize/geocode/dedupe.
+- ⏳ **Geocoding on save** — currently lat/lng is manual; add address→coords (keyless Nominatim).
+- ⏳ **Binary media upload** — drag-drop needs Cloudinary/R2 creds; images are URL-based for now.
+- ↪ Lead assignment/threads (list + status shipped in Phase 3).
+
 ## Changelog
 | Date | Change |
 |---|---|
