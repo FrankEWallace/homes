@@ -23,7 +23,7 @@ export const leadsQueue = new Queue<{ leadId: string }>(QUEUE_NAME, {
 
 /** Enqueue delivery of a persisted lead. Safe no-op-ish: failures are retried. */
 export async function enqueueLeadDelivery(leadId: string) {
-  await leadsQueue.add('deliver', { leadId }, { jobId: `lead:${leadId}` });
+  await leadsQueue.add('deliver', { leadId }, { jobId: `lead-${leadId}` });
 }
 
 async function deliverLead(leadId: string) {
