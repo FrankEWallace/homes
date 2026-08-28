@@ -1,5 +1,11 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/prisma';
+import { logger } from '../utils/logger';
+import { recordOp } from '../observability/metrics';
+
+// Search is the hot read path; the plan targets p95 < 300 ms (Phase 5). Warn
+// above this so slow queries surface in logs before they breach the SLO.
+const SLOW_SEARCH_MS = 300;
 
 /**
  * SearchEngine — the seam that keeps Postgres/PostGIS swappable for
@@ -121,6 +127,7 @@ export function createPostgresSearchEngine(): SearchEngine {
       const bbox = p.bbox ?? null;
       const sort = p.sort ?? 'relevance';
 
+      const started = process.hrtime.bigint();
       const [rows, facetRows] = await Promise.all([
         prisma.$queryRaw<Row[]>`
           select * from search_listings(
@@ -135,6 +142,18 @@ export function createPostgresSearchEngine(): SearchEngine {
             ${bbox}::float8[]
           ) as facets`,
       ]);
+      const durationMs = Number(process.hrtime.bigint() - started) / 1e6;
+      recordOp('search_listings', durationMs);
+      if (durationMs >= SLOW_SEARCH_MS) {
+        logger.warn('search.slow', {
+          durationMs: Math.round(durationMs),
+          q,
+          tenure,
+          city,
+          hasBbox: bbox !== null,
+          sort,
+        });
+      }
 
       const total = rows.length > 0 ? Number(rows[0].total_count) : 0;
       const facets = facetRows[0]?.facets ?? {

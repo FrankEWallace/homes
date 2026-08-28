@@ -1,16 +1,19 @@
 import express from 'express';
 import compression from 'compression';
-import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import { Sentry } from './config/sentry';
 import { swaggerSpec } from './config/swagger';
 import { helmetMiddleware, corsMiddleware, globalRateLimit } from './middleware/security';
 import { notFound, errorHandler } from './middleware/errorHandler';
+import { requestLogger } from './middleware/requestLogger';
 import { router } from './routes/index';
 import { LOCAL_UPLOAD_DIR } from './utils/upload';
 import { env } from './config/env';
 
 const app = express();
+
+// ─── Observability (request id + timing + structured logs + metrics) ─────────
+app.use(requestLogger);
 
 // ─── Security ───────────────────────────────────────────────────────────────
 app.use(helmetMiddleware);
@@ -29,11 +32,6 @@ app.use(
   }),
 );
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// ─── Logging ─────────────────────────────────────────────────────────────────
-if (env.NODE_ENV !== 'test') {
-  app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
-}
 
 // ─── API Docs ─────────────────────────────────────────────────────────────────
 app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

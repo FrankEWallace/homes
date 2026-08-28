@@ -266,6 +266,7 @@ const router = Router();
 // ── Public ────────────────────────────────────────────────────────────────────
 router.get('/categories', ctrl.listCategories);
 router.get('/types', ctrl.listListingTypes);
+router.get('/sitemap', ctrl.listSitemapSlugs); // must precede '/:id'
 router.get('/', ctrl.searchListings);
 
 router.get('/mine', authenticate, authorize('agent'), ctrl.getMyListings);

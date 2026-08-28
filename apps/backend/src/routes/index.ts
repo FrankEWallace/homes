@@ -1,4 +1,7 @@
 import { Router } from 'express';
+import { prisma } from '../config/prisma';
+import { redis } from '../config/redis';
+import { snapshot } from '../observability/metrics';
 import { authRouter } from '../modules/auth/auth.router';
 import { listingsRouter } from '../modules/listings/listings.router';
 import { notificationsRouter } from '../modules/notifications/notifications.router';
@@ -32,6 +35,56 @@ router.get('/health', async (_req, res) => {
     env: process.env.NODE_ENV,
     db_host: dbHost,
   });
+});
+
+/**
+ * @openapi
+ * /health/ready:
+ *   get:
+ *     tags: [System]
+ *     summary: Readiness probe — checks Postgres + Redis connectivity
+ *     security: []
+ *     responses:
+ *       200: { description: All dependencies reachable }
+ *       503: { description: One or more dependencies are unavailable }
+ */
+router.get('/health/ready', async (_req, res) => {
+  const check = async (fn: () => Promise<unknown>) => {
+    const started = process.hrtime.bigint();
+    try {
+      await fn();
+      return { ok: true, latencyMs: Number(process.hrtime.bigint() - started) / 1e6 };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'unknown' };
+    }
+  };
+
+  const [db, cache] = await Promise.all([
+    check(() => prisma.$queryRaw`select 1`),
+    check(() => redis.ping()),
+  ]);
+
+  const ready = db.ok && cache.ok;
+  res.status(ready ? 200 : 503).json({
+    success: ready,
+    status: ready ? 'ready' : 'degraded',
+    checks: { database: db, redis: cache },
+    timestamp: new Date().toISOString(),
+  });
+});
+
+/**
+ * @openapi
+ * /metrics:
+ *   get:
+ *     tags: [System]
+ *     summary: In-process request + operation latency metrics (p50/p95/p99)
+ *     security: []
+ *     responses:
+ *       200: { description: Metrics snapshot }
+ */
+router.get('/metrics', (_req, res) => {
+  res.json({ success: true, data: snapshot(), timestamp: new Date().toISOString() });
 });
 
 // v1 marketplace modules

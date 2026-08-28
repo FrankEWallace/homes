@@ -107,6 +107,27 @@ export async function searchListings(input: ListingQueryInput) {
 }
 
 /**
+ * Lightweight projection of published listings for sitemap generation (Phase 5).
+ * Returns only `slug` + `updatedAt` so the web layer can emit sitemap URLs at
+ * scale without hydrating full listing rows. Paged so callers can shard across
+ * multiple sitemap files when the catalogue grows past a single file's URL cap.
+ */
+export async function getPublishedListingSlugs(page: number, limit: number) {
+  const where = { status: 'published' as const };
+  const [rows, total] = await Promise.all([
+    prisma.listing.findMany({
+      where,
+      select: { slug: true, updatedAt: true },
+      orderBy: { publishedAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.listing.count({ where }),
+  ]);
+  return { listings: rows, meta: paginate(page, limit, total) };
+}
+
+/**
  * Bulk-import listings from CSV (F9). Each row is validated, deduped against the
  * agent's existing (title, city) pairs, geocoded when coordinates are absent, and
  * created as a draft. Returns a per-row summary so the agent can fix and re-upload.
