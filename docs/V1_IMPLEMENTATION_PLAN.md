@@ -384,10 +384,23 @@ Third slice (2026-08-28) — admin essentials: moderation (F14–F16, moderation
   reinstate → back in search; content heuristic caught familial-status + religion;
   admin authz enforced (seeker → 403). Closes the Fair Housing content item.
 
+Fourth slice (2026-08-28) — admin essentials: taxonomy + user/agency management:
+- ✅ **Taxonomy management** — admin endpoints for **cities** (list/create/update/
+  toggle-active/delete) and **property types** (list with listing counts/create/
+  update/delete, delete **blocked 409** when listings use the type — `Listing.type`
+  is an FK to `ListingType.name`). Web `/dashboard/taxonomy` (admin-only) with add
+  forms + active toggles + guarded deletes. Verified live (create city via UI →
+  revalidates; in-use type delete blocked).
+- ✅ **User/agency management** — `GET /admin/users` (paginated, role/status/search
+  filters, listing counts) + `PATCH /admin/users/:id` (role/status). Suspending is
+  enforced by the **existing login status check** (suspended/banned → 403 at login,
+  verified). Admin **can't change their own** role/status (400, self-lockout guard).
+  Web `/dashboard/users` table with per-row role+status selects; own row shows a
+  "You" badge. All admin actions audit-logged.
+
 Deferred (rest of Phase 6):
-- ⏳ `/vibe-security` run (user-triggered); remaining **admin essentials**
-  (taxonomy + user/agency management — not built this slice); launch readiness
-  (prod env + `ALLOWED_ORIGINS`, backups/restore, runbooks, rollback).
+- ⏳ `/vibe-security` run (user-triggered); launch readiness (prod env +
+  `ALLOWED_ORIGINS`, backups/restore, runbooks, rollback).
 
 ## Changelog
 | Date | Change |
@@ -401,6 +414,7 @@ Deferred (rest of Phase 6):
 | 2026-08-19 | Path A **step 4** — auth adaptation: roles renamed `guest/host → seeker/agent` (enum + middleware + `authorize()` + notifications + swagger + chat labels); `phone` made optional; added OTP-free **email-first register** (`POST /auth/register-email`, seeker/agent, tokens issued immediately) alongside the existing phone/email login. **Verified** vs local DB: register (phone null) → login → JWT role correct; wrong-password + duplicate-email rejected. (Stale listings Swagger JSDoc left as cosmetic debt.) |
 | 2026-08-19 | Path A **step 3** — PostGIS search on the Prisma Postgres: `prisma/sql/0001_postgis_search.sql` (geom + FTS columns, GiST/GIN indexes, `search_listings()`/facets on the `"Listing"` table) + `src/search/engine.ts` (`SearchEngine` via `$queryRaw`). Retired the interim Prisma search; added `bbox` map-bounds param. **Verified end-to-end** against local Postgres+PostGIS: `prisma db push` → apply SQL → seed → search (full-text, filters, bbox, facets, draft-exclusion) correct via both psql and the TS engine. Removed stale upstream migrations (schema via `db push` for now). |
 | 2026-08-28 | **Phase 6 started (security + compliance)** — manual security audit ([SECURITY_AUDIT.md](SECURITY_AUDIT.md); fixed auth log noise + pinned JWT alg; rewrote CORS to exact-match env-driven). GDPR data-export (`GET /auth/me/export`) + erasure (`DELETE /auth/me`, password re-auth, lead-PII scrub, agent-with-listings guard); web `/account` + `/privacy` + cookie-consent banner. De-branded the repo (removed all ToJoin references + dead code). Verified live on Neon incl. full delete→scrub flow; 35 backend tests green. |
+| 2026-08-28 | **Phase 6 (admin taxonomy + users)** — admin endpoints + UI for city/property-type CRUD (type delete guarded when in use) and user/agency management (role/status, self-lockout guard; suspend enforced by existing login check). Admin-only `/dashboard/taxonomy` + `/dashboard/users`; all actions audit-logged. Verified live (API + browser). Completes the F14–F16 admin-essentials build. |
 | 2026-08-28 | **Phase 6 (admin moderation)** — F14–F16 moderation-first slice: admin `modules/admin/` (moderation queue with content/duplicate/suspended flags; suspend/reinstate + audit log), new `suspended` ListingStatus (agent can't republish; drops from public search), web `/dashboard/moderation` (admin-only) + sidebar nav. Verified live via API + browser. Closes the Fair Housing content-moderation item. |
 | 2026-08-28 | **Phase 6 (a11y + Fair Housing)** — WCAG AA pass on public flows (account-menu accessible name + Esc-to-close, enquiry `aria-pressed`, skip-to-content link); Fair Housing review ([FAIR_HOUSING.md](FAIR_HOUSING.md)) + footer non-discrimination notice. Fixed localization leftovers surfaced in the pass: home Popular Cities now dynamic (was hardcoded US cities → 404), filter prices USD→TZS, "ZIP"→"area". Verified live. |
 | 2026-08-28 | **Phase 5 executed (read-path hardening)** — sitemaps-at-scale (full catalogue + city pages via new `/listings/sitemap` feed + `getCities()` seam), observability (structured logger, request-id/timing middleware, in-process metrics registry, `/metrics` + `/health/ready`, search-SLO slow-query warn; dropped morgan), caching audit (no gap), EXPLAIN index-tuning harness, and a k6 load-test harness. Verified live on Neon+Redis; 35 backend tests green. |

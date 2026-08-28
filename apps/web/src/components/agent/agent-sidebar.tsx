@@ -2,7 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Home, Inbox, BarChart3, Settings, Building2, ShieldCheck } from "lucide-react";
+import {
+  LayoutDashboard,
+  Home,
+  Inbox,
+  BarChart3,
+  Settings,
+  Building2,
+  ShieldCheck,
+  Tags,
+  Users,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -41,7 +51,12 @@ export function AgentSidebar({
 }: AgentSidebarProps) {
   const pathname = usePathname();
   const items = role === "admin"
-    ? [...nav, { title: "Moderation", href: "/dashboard/moderation", icon: ShieldCheck }]
+    ? [
+        ...nav,
+        { title: "Moderation", href: "/dashboard/moderation", icon: ShieldCheck },
+        { title: "Taxonomy", href: "/dashboard/taxonomy", icon: Tags },
+        { title: "Users", href: "/dashboard/users", icon: Users },
+      ]
     : nav;
 
   return (
