@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Home, Inbox, BarChart3, Settings, Building2 } from "lucide-react";
+import { LayoutDashboard, Home, Inbox, BarChart3, Settings, Building2, ShieldCheck } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -25,8 +25,24 @@ const nav = [
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ] as const;
 
-export function AgentSidebar(props: ComponentProps<typeof Sidebar>) {
+interface AgentSidebarProps extends ComponentProps<typeof Sidebar> {
+  role?: "seeker" | "agent" | "admin";
+  userName?: string;
+  userInitials?: string;
+  userSubtitle?: string;
+}
+
+export function AgentSidebar({
+  role,
+  userName = "Account",
+  userInitials = "··",
+  userSubtitle,
+  ...props
+}: AgentSidebarProps) {
   const pathname = usePathname();
+  const items = role === "admin"
+    ? [...nav, { title: "Moderation", href: "/dashboard/moderation", icon: ShieldCheck }]
+    : nav;
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -52,7 +68,7 @@ export function AgentSidebar(props: ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarGroupLabel>Manage</SidebarGroupLabel>
           <SidebarMenu>
-            {nav.map((item) => {
+            {items.map((item) => {
               const active = item.href === "/dashboard" ? pathname === item.href : pathname.startsWith(item.href);
               return (
                 <SidebarMenuItem key={item.href}>
@@ -74,11 +90,13 @@ export function AgentSidebar(props: ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg">
               <Avatar className="size-8 rounded-lg">
-                <AvatarFallback className="rounded-lg">JR</AvatarFallback>
+                <AvatarFallback className="rounded-lg">{userInitials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left leading-tight">
-                <span className="truncate font-medium">Jordan Rivera</span>
-                <span className="text-muted-foreground truncate text-xs">Bay Realty</span>
+                <span className="truncate font-medium">{userName}</span>
+                <span className="text-muted-foreground truncate text-xs">
+                  {userSubtitle ?? (role === "admin" ? "Administrator" : "Agent")}
+                </span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

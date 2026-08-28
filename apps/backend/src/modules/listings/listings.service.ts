@@ -326,11 +326,20 @@ export async function deleteListing(id: string, hostId: string, role: string) {
   await prisma.listing.delete({ where: { id } });
 }
 
-/** Self-serve publish (free agent listings). Moderation gate is added later. */
+/** Self-serve publish (free agent listings), gated by admin moderation. */
 export async function publishListing(id: string, hostId: string, role: string) {
   const listing = await prisma.listing.findUnique({ where: { id } });
   if (!listing) throw new AppError(404, 'Listing not found');
   if (role !== 'admin' && listing.hostId !== hostId) throw new AppError(403, 'You do not own this listing');
+
+  // A moderation takedown can only be lifted by an admin reinstate — an agent
+  // cannot republish a suspended listing.
+  if (listing.status === 'suspended' && role !== 'admin') {
+    throw new AppError(
+      403,
+      'This listing was suspended by moderation and cannot be republished. Contact support.',
+    );
+  }
 
   return prisma.listing.update({
     where: { id },

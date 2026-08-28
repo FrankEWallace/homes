@@ -28,16 +28,25 @@ There is **no** demographic field to filter on, and none is derived. Saved-searc
 alerts and lead routing key off the same attributes + the listing's owning agent —
 no audience targeting by seeker characteristics. **No change required.**
 
-## Residual risk — listing free-text (tracked, not code)
+## Residual risk — listing free-text (now mitigated)
 
 Agents author `title`/`description`. Free text could carry discriminatory
 preferences ("no children", "for members of X only"). This is a **content
-moderation** concern, not a filtering one, and lands with **Admin essentials
-(F14–F16, moderation/flags)** — deferred in this phase. Mitigations to add there:
+moderation** concern, not a filtering one.
 
-- A moderation queue / flag for listings, with keyword heuristics for common
-  discriminatory phrases surfaced for human review.
+**Implemented (Phase 6 admin/moderation slice):** an admin **moderation queue**
+(`GET /admin/moderation`) scans published listings with keyword heuristics across
+five protected-characteristic categories (familial status, religion, sex,
+disability, national origin) and surfaces matches **for human review** (never
+auto-actioned — some phrases have legitimate uses). Admins can **suspend** a
+listing (`POST /admin/listings/:id/suspend`, reason recorded + audit-logged),
+which removes it from public search via a dedicated `suspended` status that the
+agent publish flow cannot lift; **reinstate** reverses it. See
+`apps/backend/src/modules/admin/` + `/dashboard/moderation`.
+
+Still to add later:
 - A published non-discrimination policy agents accept at onboarding.
+- Tuning the heuristic list from real moderation outcomes.
 
 ## Public posture
 

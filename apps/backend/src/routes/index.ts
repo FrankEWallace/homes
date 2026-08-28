@@ -10,6 +10,7 @@ import { wishlistRouter } from '../modules/wishlist/wishlist.router';
 import { citiesRouter } from '../modules/cities/cities.router';
 import { leadsRouter } from '../modules/leads/leads.router';
 import { savedSearchesRouter } from '../modules/saved-searches/saved-searches.router';
+import { adminRouter } from '../modules/admin/admin.router';
 
 const router = Router();
 
@@ -96,5 +97,6 @@ router.use('/chat', chatRouter);
 router.use('/wishlist', wishlistRouter);
 router.use('/leads', leadsRouter);
 router.use('/saved-searches', savedSearchesRouter);
+router.use('/admin', adminRouter);
 
 export { router };

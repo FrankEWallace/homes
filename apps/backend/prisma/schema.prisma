@@ -450,6 +450,7 @@ enum ListingStatus {
   sold
   let
   withdrawn
+  suspended // admin moderation takedown — only an admin reinstate can lift it
 }
 
 enum LeadKind {

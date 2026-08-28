@@ -18,11 +18,17 @@ export default async function AgentLayout({ children }: LayoutProps<"/">) {
   if (user.role !== "agent" && user.role !== "admin") redirect("/");
 
   const agentName = user.businessName || `${user.firstName} ${user.lastName}`.trim();
+  const initials = `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase() || "··";
 
   return (
     <TooltipProvider delayDuration={0}>
     <SidebarProvider>
-      <AgentSidebar />
+      <AgentSidebar
+        role={user.role}
+        userName={agentName}
+        userInitials={initials}
+        userSubtitle={user.role === "admin" ? "Administrator" : user.businessName ? "Agency" : "Agent"}
+      />
       <SidebarInset className="min-w-0 overflow-x-clip">
         <header className="bg-background/50 sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b backdrop-blur">
           <div className="flex w-full items-center gap-2 px-4 lg:px-6">
