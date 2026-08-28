@@ -43,6 +43,19 @@ export const searchListings: RequestHandler = async (req, res, next) => {
   }
 };
 
+const SITEMAP_MAX_LIMIT = 50_000; // Google's per-sitemap-file URL cap
+
+export const listSitemapSlugs: RequestHandler = async (req, res, next) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(SITEMAP_MAX_LIMIT, Math.max(1, Number(req.query.limit) || SITEMAP_MAX_LIMIT));
+    const result = await listingsService.getPublishedListingSlugs(page, limit);
+    sendSuccess(res, result.listings, 'Sitemap slugs retrieved', 200, result.meta);
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getListing: RequestHandler = async (req, res, next) => {
   try {
     const listing = await listingsService.getListing(p(req.params.id), req.user?.sub, req.user?.role);

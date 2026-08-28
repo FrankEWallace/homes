@@ -282,6 +282,50 @@ CSV), it appears in public search within the ISR window (geo trigger populated),
 land in their inbox (Phase 3). Remaining polish: media reorder/drag-drop, moderation gate,
 per-listing view tracking increment.
 
+## Phase 5 progress (2026-08-28)
+
+Read-path hardening — implementable tracks done + verified live (backend on
+Neon Postgres + Redis, web dev on :3000):
+
+- ✅ **Sitemaps at scale** — `sitemap.ts` now enumerates the **full** published
+  catalogue (was capped at 50 and missing city pages). New lightweight backend
+  feed `GET /listings/sitemap` (slug + updatedAt projection, paged, 50k cap) →
+  web seam `getSitemapListings()` pages until exhausted; adds all `/homes/[city]`
+  landing pages via a new `getCities()` seam. Single `/sitemap.xml` preserved
+  (robots unchanged); logs a warning instead of silently truncating past the
+  50k-URL single-file cap, with the `generateSitemaps()` shard-out path
+  documented. **Verified:** `/sitemap.xml` → 21 URLs (3 static + 5 cities + 13
+  listings).
+- ✅ **Observability** — structured JSON logger (`utils/logger.ts`),
+  request-id + timing middleware (`middleware/requestLogger.ts`) feeding an
+  in-process metrics registry (`observability/metrics.ts`, p50/p95/p99 per route
+  + named op, bounded ring buffer). New `GET /metrics` (live percentiles) and
+  `GET /health/ready` (Postgres `select 1` + Redis `ping` with latencies →
+  200/503). Search path records a `search_listings` op latency and **warns above
+  the 300 ms SLO**. Replaced `morgan` with the structured logger. **Verified
+  live:** all three endpoints; `search_listings` op p50/p95 recorded; slow-query
+  warn fired (Neon remote latency).
+- ✅ **Caching audit** — confirmed public freshness correctly rides fetch-level
+  `revalidate` (search 30 s, listing 60 s, city page 300 s route ISR); dashboard
+  routes are `force-dynamic`. No gap — deliberately did **not** add a route-level
+  `revalidate` to listing detail (would have made it staler than the 60 s fetch).
+- ✅ **Search index tuning harness** — `prisma/sql/explain_search.sql`:
+  `EXPLAIN (ANALYZE, BUFFERS)` probes for the FTS/bbox/facet/trigram query shapes
+  + a transactional synthetic-data generator (index plans only diverge from seq
+  scan at scale — noted).
+- ✅ **Load test** — k6 script `apps/backend/load-test/search.js` (+README):
+  ramping-VU spike over the search + detail endpoints, asserts p95 < 300 ms and
+  < 1% errors; discovers real slugs via `/listings/sitemap`. Ready-to-run against
+  any `BASE_URL`; drops into CI as a gate.
+
+Deferred (need infra/decisions, not local-verifiable):
+- ⏳ **Real p95/CWV numbers under load** — needs a deployed target env; harness is
+  ready (`k6 run` + watch `/metrics`).
+- ⏳ **Alerting backend + dashboards** — wire `/metrics` + `search.slow`/
+  `request.failed` logs to a provider (Vercel/Grafana/OTel exporter). The
+  `record*()` + logger surfaces are the seam.
+- ⏳ **Backend zod v3→v4** (carried from Phase 3) for single-source contracts.
+
 ## Changelog
 | Date | Change |
 |---|---|
@@ -293,4 +337,5 @@ per-listing view tracking increment.
 | 2026-08-19 | Path A **step 5 — DONE (Path A complete)** — repointed the web seam to the backend API: shared contracts in `packages/shared` (`listingCardSchema`, `searchParams/Response`), web API client + `searchListings` seam (`apps/web/src/server/*`), removed the Supabase adapter/deps, added a `/search` page. **Verified full stack live in-browser**: `/search?q=austin` → web seam → Express `GET /api/v1/listings` → PostGIS → rendered cards (Postgres + Redis + Next all running). Whole-workspace `tsc` + web build clean. |
 | 2026-08-19 | Path A **step 4** — auth adaptation: roles renamed `guest/host → seeker/agent` (enum + middleware + `authorize()` + notifications + swagger + chat labels); `phone` made optional; added OTP-free **email-first register** (`POST /auth/register-email`, seeker/agent, tokens issued immediately) alongside the existing phone/email login. **Verified** vs local DB: register (phone null) → login → JWT role correct; wrong-password + duplicate-email rejected. (Stale listings Swagger JSDoc left as cosmetic debt.) |
 | 2026-08-19 | Path A **step 3** — PostGIS search on the Prisma Postgres: `prisma/sql/0001_postgis_search.sql` (geom + FTS columns, GiST/GIN indexes, `search_listings()`/facets on the `"Listing"` table) + `src/search/engine.ts` (`SearchEngine` via `$queryRaw`). Retired the interim Prisma search; added `bbox` map-bounds param. **Verified end-to-end** against local Postgres+PostGIS: `prisma db push` → apply SQL → seed → search (full-text, filters, bbox, facets, draft-exclusion) correct via both psql and the TS engine. Removed stale ToJoin migrations (schema via `db push` for now). |
+| 2026-08-28 | **Phase 5 executed (read-path hardening)** — sitemaps-at-scale (full catalogue + city pages via new `/listings/sitemap` feed + `getCities()` seam), observability (structured logger, request-id/timing middleware, in-process metrics registry, `/metrics` + `/health/ready`, search-SLO slow-query warn; dropped morgan), caching audit (no gap), EXPLAIN index-tuning harness, and a k6 load-test harness. Verified live on Neon+Redis; 35 backend tests green. |
 | 2026-08-24 | **Phase 3 executed** — accounts & leads. Backend: `Lead` + `SavedSearch` models/enums; leads module (rate-limited + honeypot public submit → txn write + notification + retrying email queue; agent inbox); saved-searches module + 15-min BullMQ alert matcher; lead + alert email templates. Web: httpOnly-cookie seeker auth (login/register/logout, `proxy.ts` guard), favorites (optimistic heart + page), saved searches (save + manage), lead capture form, agent inbox wired to real data. Personalization hydrates client-side via `/api/me` so listing/city pages keep ISR. Backend + web `tsc` and `next build` green; live DB verification still gated on provisioning. |

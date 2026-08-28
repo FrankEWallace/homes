@@ -44,6 +44,30 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
   };
 }
 
+export interface SitemapListing {
+  slug: string;
+  updatedAt: string;
+}
+
+/**
+ * Lightweight published-listing feed for sitemap generation (Phase 5).
+ * Pages through `GET /listings/sitemap` (slug + updatedAt only) so the sitemap
+ * can enumerate the full catalogue and shard across files at scale.
+ */
+export async function getSitemapListings(
+  page: number,
+  limit: number,
+): Promise<{ items: SitemapListing[]; total: number }> {
+  const body = await apiGet<{ data: SitemapListing[]; meta?: { total?: number } }>(
+    "/listings/sitemap",
+    {
+      query: { page, limit },
+      next: { revalidate: 3600, tags: ["listings"] },
+    },
+  );
+  return { items: body.data ?? [], total: body.meta?.total ?? 0 };
+}
+
 /** Fetch one listing by id or slug via GET /listings/:id. Returns null on 404. */
 export async function getListing(idOrSlug: string): Promise<ListingDetail | null> {
   try {
