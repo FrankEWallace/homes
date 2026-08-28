@@ -19,7 +19,7 @@ const envSchema = z.object({
 
   // Textify Africa — https://textify.africa (API under /api/v1, Bearer auth)
   TEXTIFY_API_KEY: z.string().optional(),
-  TEXTIFY_SENDER_NAME: z.string().default('ToJoin'),
+  TEXTIFY_SENDER_NAME: z.string().default('Homes'),
   TEXTIFY_BASE_URL: z.string().url().default('https://portal.textify.africa/api/v1'),
 
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
@@ -44,7 +44,7 @@ const envSchema = z.object({
   FCM_CLIENT_EMAIL: z.string().optional(),
 
   RESEND_API_KEY: z.string().optional(),
-  EMAIL_FROM: z.string().email().default('noreply@tojoin.co.tz'),
+  EMAIL_FROM: z.string().email().default('noreply@homes.test'),
 
   SENTRY_DSN: z.string().optional(),
   GOOGLE_MAPS_API_KEY: z.string().optional(),
@@ -56,7 +56,9 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900_000),
   RATE_LIMIT_MAX: z.coerce.number().default(100),
   OTP_RATE_LIMIT_MAX: z.coerce.number().default(5),
-  ALLOWED_ORIGINS: z.string().default('http://localhost:3000,http://localhost:5173,http://localhost:3001,https://tojoin-admin-33ly.onrender.com,https://tojoin-admin.onrender.com,https://tojoin-baa8d.web.app,https://tojoin-baa8d.firebaseapp.com'),
+  // Comma-separated exact origins allowed for credentialed CORS. Dev localhost
+  // origins are added automatically in security.ts; set real prod origins here.
+  ALLOWED_ORIGINS: z.string().default('http://localhost:3000,http://localhost:5173,http://localhost:3001'),
 });
 
 const parsed = envSchema.safeParse(process.env);

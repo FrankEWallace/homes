@@ -104,7 +104,7 @@ export async function uploadToCloudinary(
     const ext = getExtension(mime);
     const id = publicId || Math.random().toString(36).substring(2, 15);
     const filename = id.includes('.') ? id : `${id}${ext}`;
-    const key = `tojoin/${folder}/${filename}`;
+    const key = `homes/${folder}/${filename}`;
 
     await r2Client.send(
       new PutObjectCommand({
@@ -129,7 +129,7 @@ export async function uploadToCloudinary(
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
-        folder: `tojoin/${folder}`,
+        folder: `homes/${folder}`,
         public_id: publicId,
         resource_type: resourceType,
         transformation: resourceType === 'image' ? [{ quality: 'auto', fetch_format: 'auto' }] : undefined,
@@ -158,7 +158,7 @@ export async function uploadPrivateDocument(
   if (r2Client) {
     const ext = getExtension(mimetype);
     const filename = publicId.includes('.') ? publicId : `${publicId}${ext}`;
-    const key = `tojoin/private/${folder}/${filename}`;
+    const key = `homes/private/${folder}/${filename}`;
 
     await r2Client.send(
       new PutObjectCommand({
@@ -181,7 +181,7 @@ export async function uploadPrivateDocument(
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
-        folder: `tojoin/${folder}`,
+        folder: `homes/${folder}`,
         public_id: publicId,
         resource_type: resourceType,
         type: 'private', // not publicly accessible without a signed URL
@@ -203,7 +203,7 @@ export async function signedDocumentUrl(
   mimetype: string,
   expiresInSeconds = 3600,
 ): Promise<string> {
-  if (r2Client && publicId.startsWith('tojoin/private/')) {
+  if (r2Client && publicId.startsWith('homes/private/')) {
     const command = new GetObjectCommand({
       Bucket: env.R2_BUCKET_NAME!,
       Key: publicId,

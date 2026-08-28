@@ -5,14 +5,13 @@ Next.js 16 · React 19 · Tailwind v4 (web) + Express · Prisma · Postgres/Post
 
 - **Design & requirements:** [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md)
 - **Build plan:** [docs/V1_IMPLEMENTATION_PLAN.md](docs/V1_IMPLEMENTATION_PLAN.md)
-- **Backend reuse (Path A):** [docs/BACKEND_REUSE_ANALYSIS.md](docs/BACKEND_REUSE_ANALYSIS.md)
 - **Project rules:** [CLAUDE.md](CLAUDE.md)
 
 ## Workspace
 
 ```
 apps/web        Next.js frontend (public marketplace + agent back-office)
-apps/backend    Express + Prisma API (adapted from the ToJoin marketplace backend)
+apps/backend    Express + Prisma API (adapted from an existing marketplace backend template)
 packages/shared cross-cutting Zod schemas + types (@homes/shared)
 ```
 

@@ -176,7 +176,7 @@ Remaining (needs user):
 - ✅ **Listing detail**: `/listing/[slug]` — gallery, price, spec grid, description, location placeholder, sticky agent contact card; SEO `generateMetadata` + `RealEstateListing` JSON-LD.
 - ✅ **Seam**: `getListing()` added; shared `listingDetail` + `search` contracts in `@homes/shared`.
 - ✅ **Verified live in-browser** (web+backend+PostGIS+Redis): home capsule, search grid (cards with price/beds/baths/sqft), listing detail — all served through the seam.
-- ✅ **Repo**: initialized git, pushed to **github.com/FrankEWallace/homes** (private). Push protection caught a hardcoded **Resend API key** in the ToJoin fork (`apps/backend/src/utils/mail.ts`); removed it (now env-only) before the key entered history.
+- ✅ **Repo**: initialized git, pushed to **github.com/FrankEWallace/homes** (private). Push protection caught a hardcoded **Resend API key** in the upstream backend template (`apps/backend/src/utils/mail.ts`); removed it (now env-only) before the key entered history.
 - ✅ **Map view** (2026-08-19): MapLibre GL (keyless CARTO basemap) — split list+map on `/search` with price-pin markers + fit-to-bounds; single-pin map on listing detail.
 - ✅ **Media display**: `next/image` with `remotePatterns` (Unsplash/Cloudinary); cards + gallery render real photos when a listing has image URLs. (Agent upload pipeline = Phase 4.)
 - ✅ **SEO surface**: `robots.ts`, `sitemap.ts` (static + published listings, resilient fallback), per-city landing pages `/homes/[city]` (SSR/ISR + canonical), canonical on listing detail, "popular cities" internal links on home. Verified: sitemap lists all listings, robots disallows `/dashboard`.
@@ -256,7 +256,7 @@ Core (done + verified live):
 - ✅ **Listing management** — agent seam (`getMyListings`/`getMyListing`/`getListingTypes`) +
   server actions (create/update/publish/unpublish/delete). Real `/dashboard/listings` table
   (status badges + row-action menu), shared new/edit form with per-field validation (saves a
-  draft; publish from the list). Backend agent CRUD was already in place from the ToJoin port.
+  draft; publish from the list). Backend agent CRUD was already in place from the backend port.
 - ✅ **Agency profile** — `/dashboard/settings` wired to `PATCH /auth/me` (name, agency, bio).
 - **Verified live**: agent login → dashboard lists real listings; create → publish via the agent
   API surfaces in the dashboard **and public search** (PostGIS `geom` trigger populates); delete
@@ -333,9 +333,9 @@ Security + compliance code (first slice) — done + verified live:
 - ✅ **Security audit (manual pass)** — see [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
   Verified lead authz/PII lockdown + listing ownership are enforced server-side.
   Fixed: removed noisy per-request auth `console.log`; pinned `jwt.verify` to
-  `HS256`. **Open (needs domains):** the CORS allowlist is still the ToJoin
-  fork's — suffix-matches `*.onrender.com`/`*.web.app`/`*.railway.app` with
-  credentials; must become an explicit prod-origin allowlist in task 5.
+  `HS256`; **rewrote CORS** to an exact-match, env-driven allowlist (no shared-host
+  suffix matching, no hardcoded brand origins). Remaining CORS action is
+  operational — set real prod origins in `ALLOWED_ORIGINS` at deploy (task 5).
 - ✅ **GDPR/CCPA data access + erasure** — backend `GET /auth/me/export`
   (profile + wishlists + saved searches + submitted leads + notifications as a
   JSON download; excludes `passwordHash`/`fcmToken`) and `DELETE /auth/me`
@@ -361,12 +361,12 @@ Deferred (rest of Phase 6):
 |---|---|
 | 2026-08-18 | Initial v1 implementation plan — 6 phases, cross-cutting streams, sequencing, risks |
 | 2026-08-18 | Phase 1 executed: app scaffold, design-system harvest, data-access seam, schema + search migrations, seed |
-| 2026-08-19 | **Backend pivot → Path A** ([BACKEND_REUSE_ANALYSIS.md](BACKEND_REUSE_ANALYSIS.md)): adopt ToJoin's Express/Prisma backend instead of Supabase. Restructured to pnpm **monorepo** (`apps/web` + `apps/backend` + `packages/shared`); web builds, backend typechecks. |
+| 2026-08-19 | **Backend pivot → Path A**: adopt an existing Express/Prisma marketplace backend (forked & adapted) instead of Supabase. Restructured to pnpm **monorepo** (`apps/web` + `apps/backend` + `packages/shared`); web builds, backend typechecks. |
 | 2026-08-19 | Path A **step 1** — stripped 9 transactional modules (bookings, payments, disputes, earnings, promo, waitlist, host, admin, reviews); rewired routes + jobs queue. Backend typechecks. |
 | 2026-08-19 | Path A **step 2** — retyped `Listing` for real estate (tenure, beds/baths, area, property type, publish flow) + pruned ~13 transactional Prisma models/enums; rewrote listings module (schemas/service/controller/router), fixed wishlist select. `prisma generate` + whole-workspace `tsc` clean. Interim Prisma search in place (PostGIS swap = step 3). **TODO:** `prisma/seed*.ts` still reference old models — rewrite when DB is provisioned. |
 | 2026-08-19 | Path A **step 5 — DONE (Path A complete)** — repointed the web seam to the backend API: shared contracts in `packages/shared` (`listingCardSchema`, `searchParams/Response`), web API client + `searchListings` seam (`apps/web/src/server/*`), removed the Supabase adapter/deps, added a `/search` page. **Verified full stack live in-browser**: `/search?q=austin` → web seam → Express `GET /api/v1/listings` → PostGIS → rendered cards (Postgres + Redis + Next all running). Whole-workspace `tsc` + web build clean. |
 | 2026-08-19 | Path A **step 4** — auth adaptation: roles renamed `guest/host → seeker/agent` (enum + middleware + `authorize()` + notifications + swagger + chat labels); `phone` made optional; added OTP-free **email-first register** (`POST /auth/register-email`, seeker/agent, tokens issued immediately) alongside the existing phone/email login. **Verified** vs local DB: register (phone null) → login → JWT role correct; wrong-password + duplicate-email rejected. (Stale listings Swagger JSDoc left as cosmetic debt.) |
-| 2026-08-19 | Path A **step 3** — PostGIS search on the Prisma Postgres: `prisma/sql/0001_postgis_search.sql` (geom + FTS columns, GiST/GIN indexes, `search_listings()`/facets on the `"Listing"` table) + `src/search/engine.ts` (`SearchEngine` via `$queryRaw`). Retired the interim Prisma search; added `bbox` map-bounds param. **Verified end-to-end** against local Postgres+PostGIS: `prisma db push` → apply SQL → seed → search (full-text, filters, bbox, facets, draft-exclusion) correct via both psql and the TS engine. Removed stale ToJoin migrations (schema via `db push` for now). |
+| 2026-08-19 | Path A **step 3** — PostGIS search on the Prisma Postgres: `prisma/sql/0001_postgis_search.sql` (geom + FTS columns, GiST/GIN indexes, `search_listings()`/facets on the `"Listing"` table) + `src/search/engine.ts` (`SearchEngine` via `$queryRaw`). Retired the interim Prisma search; added `bbox` map-bounds param. **Verified end-to-end** against local Postgres+PostGIS: `prisma db push` → apply SQL → seed → search (full-text, filters, bbox, facets, draft-exclusion) correct via both psql and the TS engine. Removed stale upstream migrations (schema via `db push` for now). |
 | 2026-08-28 | **Phase 6 started (security + compliance)** — manual security audit ([SECURITY_AUDIT.md](SECURITY_AUDIT.md); fixed auth log noise + pinned JWT alg; flagged inherited CORS). GDPR data-export (`GET /auth/me/export`) + erasure (`DELETE /auth/me`, password re-auth, lead-PII scrub, agent-with-listings guard); web `/account` + `/privacy` + cookie-consent banner. Verified live on Neon incl. full delete→scrub flow; 35 backend tests green. |
 | 2026-08-28 | **Phase 5 executed (read-path hardening)** — sitemaps-at-scale (full catalogue + city pages via new `/listings/sitemap` feed + `getCities()` seam), observability (structured logger, request-id/timing middleware, in-process metrics registry, `/metrics` + `/health/ready`, search-SLO slow-query warn; dropped morgan), caching audit (no gap), EXPLAIN index-tuning harness, and a k6 load-test harness. Verified live on Neon+Redis; 35 backend tests green. |
 | 2026-08-24 | **Phase 3 executed** — accounts & leads. Backend: `Lead` + `SavedSearch` models/enums; leads module (rate-limited + honeypot public submit → txn write + notification + retrying email queue; agent inbox); saved-searches module + 15-min BullMQ alert matcher; lead + alert email templates. Web: httpOnly-cookie seeker auth (login/register/logout, `proxy.ts` guard), favorites (optimistic heart + page), saved searches (save + manage), lead capture form, agent inbox wired to real data. Personalization hydrates client-side via `/api/me` so listing/city pages keep ISR. Backend + web `tsc` and `next build` green; live DB verification still gated on provisioning. |

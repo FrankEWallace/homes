@@ -21,13 +21,13 @@
 |---|----------|---------|-----|
 | 1 | Low | `authenticate` logged `[AUTH] Path … Authorization: Present/Missing` via `console.log` on **every** request — noise + activity leak. | Removed; failures still surface through the structured logger. |
 | 2 | Low | `jwt.verify` didn't pin the algorithm (theoretical alg-confusion surface). | Pinned `algorithms: ['HS256']` in both `authenticate` + `optionalAuthenticate`. Tokens are HS256-signed. |
+| 3 | **Medium–High** | **Overly permissive CORS** inherited from the upstream backend template (`middleware/security.ts`): production did **suffix matching** on `.onrender.com`, `.web.app`, `.firebaseapp.com`, `.railway.app`, `.fornax-ai.online` with `credentials: true` — any subdomain on those shared hosts could make authenticated cross-origin requests — plus hardcoded non-project brand origins. | Rewrote to an **exact-match, env-driven** allowlist: production origins come only from `ALLOWED_ORIGINS`; localhost is allowed only outside production; no suffix matching, no hardcoded brand domains. **Set your real prod origins in `ALLOWED_ORIGINS` at deploy.** |
+| 4 | Low | Stale non-project origins in the prod list. | Removed with #3. |
 
-## Open findings (need a decision — not changed to avoid breaking deploys)
+## Open findings (code level)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 3 | **Medium–High** | **CORS allowlist inherited from the ToJoin fork** (`middleware/security.ts`). Production hardcodes `*.tojoin.co.tz` and does **suffix matching** on `.onrender.com`, `.web.app`, `.firebaseapp.com`, `.railway.app`, `.fornax-ai.online` with `credentials: true` — any subdomain on those shared hosts can make authenticated cross-origin requests. | Replace with an explicit allowlist of *this* project's real prod origins once domains are chosen (Phase 6 task 5). Drop the shared-host suffix matches. Keep it env-driven via `ALLOWED_ORIGINS`. |
-| 4 | Low | Stale ToJoin origins in the prod list are dead links but signal drift. | Remove alongside #3. |
+None outstanding. The only remaining CORS action is operational: populate `ALLOWED_ORIGINS`
+with the real production web origin(s) when domains are chosen (Phase 6 task 5).
 
 ## Deferred to `/vibe-security` + launch
 

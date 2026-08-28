@@ -1,6 +1,6 @@
 # ==========================================
 # Backend Service Dockerfile
-# Monorepo context: /tojoin_backend
+# Monorepo context: apps/backend
 # ==========================================
 
 FROM node:20-alpine AS builder
