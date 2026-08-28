@@ -81,3 +81,14 @@ export const otpRateLimit: RequestHandler = rateLimit({
   legacyHeaders: false,
   message: { success: false, message: 'Too many OTP requests. Please wait before trying again.' },
 });
+
+// Login: throttle password-guessing. Keyed by the account identifier when present
+// (so one attacker can't lock every user by hammering from one IP) and the IP.
+export const loginRateLimit: RequestHandler = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  keyGenerator: (req) => `${req.body?.email ?? req.body?.phone ?? 'anon'}:${req.ip ?? 'unknown'}`,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many sign-in attempts. Please wait a few minutes and try again.' },
+});

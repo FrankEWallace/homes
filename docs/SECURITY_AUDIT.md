@@ -29,7 +29,28 @@
 None outstanding. The only remaining CORS action is operational: populate `ALLOWED_ORIGINS`
 with the real production web origin(s) when domains are chosen (Phase 6 task 5).
 
-## Deferred to `/vibe-security` + launch
+## Blueprint `/vibe-security` gate — run 2026-08-28
 
-- Full dependency/CVE scan, secret-scan of history, RLS-equivalent review at the
-  Postgres layer, and the Blueprint `/vibe-security` gate (user-triggered).
+Ran the mandated 9-step audit
+(`/Applications/MAMP/htdocs/blueprint/.claude/skills/vibe-security/`), adapted from
+the Laravel checklist to this Express/Prisma/Next stack.
+
+| Step | Area | Result |
+|------|------|--------|
+| 1 | Secrets & env | ✅ Only `.env.example` tracked (placeholders); no hardcoded secrets; `NEXT_PUBLIC_SITE_URL` is the sole public var (non-secret). |
+| 2 | DB access control | ✅ All raw SQL is parameterized tagged-template `$queryRaw` (no `…Unsafe`, no interpolation); no `req.body` spread into Prisma — every write goes through a Zod-parsed input; FKs defined in schema. |
+| 3 | Auth & authz | ✅ Web session in httpOnly cookie; JWT pinned to HS256; ownership checks in leads/listings/wishlist/saved-searches/admin services (verified: cross-owner → 403). |
+| 4 | Rate limiting | ⚠️→✅ **Fixed:** login/`login-email`/`google`/`reset-password` had only the global limiter → added `loginRateLimit` (10 / 15 min per email+IP). Verified: 10×401 then 429. Lead/register/OTP/forgot-password already limited. |
+| 5 | Payments | ✅ N/A — payment/booking modules stripped from the fork; no billing surface. |
+| 6 | AI / LLM | ✅ N/A — no AI integration. |
+| 7 | Deployment | ✅ `helmet` on; error handler returns generic 500 and leaks the stack **only** when `NODE_ENV !== 'production'`; CORS is exact-match env-driven; no source maps/`.git` served. |
+| 8 | Input validation | ✅ Zod validation at every route edge; no SQL-string interpolation; state-changing routes are JSON+token (not cookie-form) so CSRF surface is minimal, and the session cookie is `sameSite: lax`. |
+| 9 | RBAC / tenancy | ✅ Admin routes gated by `authenticate + authorize('admin')` (verified seeker → 403); agent data scoped by `hostId`/token, never client-supplied ids. |
+
+**Outcome: clean.** One Medium finding (login brute-force) found and fixed this pass.
+
+## Still recommended before/at launch (operational, not code)
+
+- Populate `ALLOWED_ORIGINS` with the real production web origin(s).
+- Dependency/CVE scan (`pnpm audit`) and a secret-scan of git history in CI.
+- Re-run this gate after any auth/CORS change. See [LAUNCH_READINESS.md](LAUNCH_READINESS.md).

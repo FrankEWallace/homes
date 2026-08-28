@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { otpRateLimit } from '../../middleware/security';
+import { otpRateLimit, loginRateLimit } from '../../middleware/security';
 import { authenticate } from '../../middleware/auth';
 import { upload } from '../../utils/upload';
 import * as ctrl from './auth.controller';
@@ -287,13 +287,13 @@ router.post('/register', otpRateLimit, ctrl.register);
 router.post('/register-email', ctrl.emailRegister);
 router.post('/verify-phone', ctrl.verifyPhone);
 router.post('/resend-otp', otpRateLimit, ctrl.resendOtp);
-router.post('/login', ctrl.login);
-router.post('/login-email', ctrl.emailLogin);
-router.post('/google', ctrl.googleLogin);
+router.post('/login', loginRateLimit, ctrl.login);
+router.post('/login-email', loginRateLimit, ctrl.emailLogin);
+router.post('/google', loginRateLimit, ctrl.googleLogin);
 router.post('/refresh', ctrl.refresh);
 router.post('/logout', ctrl.logout);
 router.post('/forgot-password', otpRateLimit, ctrl.forgotPassword);
-router.post('/reset-password', ctrl.resetPassword);
+router.post('/reset-password', loginRateLimit, ctrl.resetPassword);
 
 // Authenticated routes
 router.get('/me', authenticate, ctrl.getProfile);

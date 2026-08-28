@@ -398,9 +398,21 @@ Fourth slice (2026-08-28) — admin essentials: taxonomy + user/agency managemen
   Web `/dashboard/users` table with per-row role+status selects; own row shows a
   "You" badge. All admin actions audit-logged.
 
-Deferred (rest of Phase 6):
-- ⏳ `/vibe-security` run (user-triggered); launch readiness (prod env +
-  `ALLOWED_ORIGINS`, backups/restore, runbooks, rollback).
+Fifth slice (2026-08-28) — security gate + launch readiness:
+- ✅ **`/vibe-security` gate run** — the mandated 9-step Blueprint audit, adapted
+  to the Express/Prisma/Next stack. **Outcome clean**; one Medium finding found +
+  fixed: login/`login-email`/`google`/`reset-password` lacked a dedicated limiter
+  → added `loginRateLimit` (10 / 15 min per email+IP). Verified live (10×401 →
+  429). Full results table in [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
+- ✅ **Launch readiness runbook** — [LAUNCH_READINESS.md](LAUNCH_READINESS.md):
+  ship map, required/optional env for both apps, the DB migrate + **PostGIS SQL**
+  order (the `db push` geom-drop trap), pre-deploy checklist, deploy steps,
+  post-deploy smoke tests, backups/restore drill + rollback, and the Phase-5
+  observability hooks. Operational items (provision infra, real domains, run the
+  restore drill, wire an alerting backend) are the remaining launch actions.
+
+**Phase 6 code is complete.** Remaining before go-live is operational (provision
+prod infra, set real domains + `ALLOWED_ORIGINS`, rehearse restore, wire alerts).
 
 ## Changelog
 | Date | Change |
@@ -414,6 +426,7 @@ Deferred (rest of Phase 6):
 | 2026-08-19 | Path A **step 4** — auth adaptation: roles renamed `guest/host → seeker/agent` (enum + middleware + `authorize()` + notifications + swagger + chat labels); `phone` made optional; added OTP-free **email-first register** (`POST /auth/register-email`, seeker/agent, tokens issued immediately) alongside the existing phone/email login. **Verified** vs local DB: register (phone null) → login → JWT role correct; wrong-password + duplicate-email rejected. (Stale listings Swagger JSDoc left as cosmetic debt.) |
 | 2026-08-19 | Path A **step 3** — PostGIS search on the Prisma Postgres: `prisma/sql/0001_postgis_search.sql` (geom + FTS columns, GiST/GIN indexes, `search_listings()`/facets on the `"Listing"` table) + `src/search/engine.ts` (`SearchEngine` via `$queryRaw`). Retired the interim Prisma search; added `bbox` map-bounds param. **Verified end-to-end** against local Postgres+PostGIS: `prisma db push` → apply SQL → seed → search (full-text, filters, bbox, facets, draft-exclusion) correct via both psql and the TS engine. Removed stale upstream migrations (schema via `db push` for now). |
 | 2026-08-28 | **Phase 6 started (security + compliance)** — manual security audit ([SECURITY_AUDIT.md](SECURITY_AUDIT.md); fixed auth log noise + pinned JWT alg; rewrote CORS to exact-match env-driven). GDPR data-export (`GET /auth/me/export`) + erasure (`DELETE /auth/me`, password re-auth, lead-PII scrub, agent-with-listings guard); web `/account` + `/privacy` + cookie-consent banner. De-branded the repo (removed all ToJoin references + dead code). Verified live on Neon incl. full delete→scrub flow; 35 backend tests green. |
+| 2026-08-28 | **Phase 6 (security gate + launch readiness)** — ran the Blueprint `/vibe-security` 9-step audit (clean; fixed a login brute-force gap with `loginRateLimit`, verified 429). Wrote [LAUNCH_READINESS.md](LAUNCH_READINESS.md) (env, DB+PostGIS order, pre/post-deploy checklists, backups/rollback, observability). Phase 6 code complete; remaining is operational. |
 | 2026-08-28 | **Phase 6 (admin taxonomy + users)** — admin endpoints + UI for city/property-type CRUD (type delete guarded when in use) and user/agency management (role/status, self-lockout guard; suspend enforced by existing login check). Admin-only `/dashboard/taxonomy` + `/dashboard/users`; all actions audit-logged. Verified live (API + browser). Completes the F14–F16 admin-essentials build. |
 | 2026-08-28 | **Phase 6 (admin moderation)** — F14–F16 moderation-first slice: admin `modules/admin/` (moderation queue with content/duplicate/suspended flags; suspend/reinstate + audit log), new `suspended` ListingStatus (agent can't republish; drops from public search), web `/dashboard/moderation` (admin-only) + sidebar nav. Verified live via API + browser. Closes the Fair Housing content-moderation item. |
 | 2026-08-28 | **Phase 6 (a11y + Fair Housing)** — WCAG AA pass on public flows (account-menu accessible name + Esc-to-close, enquiry `aria-pressed`, skip-to-content link); Fair Housing review ([FAIR_HOUSING.md](FAIR_HOUSING.md)) + footer non-discrimination notice. Fixed localization leftovers surfaced in the pass: home Popular Cities now dynamic (was hardcoded US cities → 404), filter prices USD→TZS, "ZIP"→"area". Verified live. |
