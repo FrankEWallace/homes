@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { HeaderAccount } from "@/components/marketplace/header-account";
+import { CookieConsent } from "@/components/marketplace/cookie-consent";
 
 export default function PublicLayout({ children }: LayoutProps<"/">) {
   return (
@@ -35,8 +36,18 @@ export default function PublicLayout({ children }: LayoutProps<"/">) {
         <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-1 px-6 py-8 text-[14px] md:px-10">
           <p className="text-hof font-semibold">homes</p>
           <p>© {new Date().getFullYear()} homes — a listings marketplace.</p>
+          <nav className="text-foggy mt-2 flex gap-4 text-[13px]">
+            <Link href="/privacy" className="hover:text-rausch transition-colors">
+              Privacy
+            </Link>
+            <Link href="/account" className="hover:text-rausch transition-colors">
+              Account &amp; data
+            </Link>
+          </nav>
         </div>
       </footer>
+
+      <CookieConsent />
     </div>
   );
 }

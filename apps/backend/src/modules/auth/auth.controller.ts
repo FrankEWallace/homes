@@ -15,6 +15,7 @@ import {
   EmailLoginSchema,
   EmailRegisterSchema,
   ConfirmChangePasswordSchema,
+  DeleteAccountSchema,
 } from './auth.schemas';
 import { sendSuccess, sendCreated } from '../../utils/response';
 
@@ -162,6 +163,27 @@ export const updateProfile: RequestHandler = async (req, res, next) => {
     const input = UpdateProfileSchema.parse(req.body);
     const user = await authService.updateProfile(req.user!.sub, input);
     sendSuccess(res, user, 'Profile updated');
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const exportData: RequestHandler = async (req, res, next) => {
+  try {
+    const data = await authService.exportAccountData(req.user!.sub);
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="my-data.json"');
+    res.status(200).send(JSON.stringify(data, null, 2));
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteAccount: RequestHandler = async (req, res, next) => {
+  try {
+    const { password } = DeleteAccountSchema.parse(req.body ?? {});
+    const result = await authService.deleteAccount(req.user!.sub, password);
+    sendSuccess(res, result, 'Account deleted');
   } catch (err) {
     next(err);
   }

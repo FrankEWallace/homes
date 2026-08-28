@@ -92,6 +92,11 @@ export const GoogleLoginSchema = z.object({
   phone: phone.optional(),
 });
 
+// GDPR erasure: password is verified in the service when the user has one.
+export const DeleteAccountSchema = z.object({
+  password: z.string().min(1).optional(),
+});
+
 export type GoogleLoginInput = z.infer<typeof GoogleLoginSchema>;
 export type EmailLoginInput = z.infer<typeof EmailLoginSchema>;
 export type EmailRegisterInput = z.infer<typeof EmailRegisterSchema>;
@@ -105,3 +110,4 @@ export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
 export type RequestChangePasswordInput = z.infer<typeof RequestChangePasswordSchema>;
 export type ConfirmChangePasswordInput = z.infer<typeof ConfirmChangePasswordSchema>;
+export type DeleteAccountInput = z.infer<typeof DeleteAccountSchema>;

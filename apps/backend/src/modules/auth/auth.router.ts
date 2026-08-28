@@ -305,4 +305,8 @@ router.patch('/me/fcm-token', authenticate, ctrl.updateFcmToken);
 router.post('/me/change-password/request', authenticate, ctrl.requestChangePassword);
 router.post('/me/change-password/confirm', authenticate, ctrl.confirmChangePassword);
 
+// GDPR / CCPA: data access + erasure (Phase 6)
+router.get('/me/export', authenticate, ctrl.exportData);
+router.delete('/me', authenticate, ctrl.deleteAccount);
+
 export { router as authRouter };

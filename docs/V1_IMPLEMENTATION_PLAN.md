@@ -326,6 +326,36 @@ Deferred (need infra/decisions, not local-verifiable):
   `record*()` + logger surfaces are the seam.
 - ⏳ **Backend zod v3→v4** (carried from Phase 3) for single-source contracts.
 
+## Phase 6 progress (2026-08-28)
+
+Security + compliance code (first slice) — done + verified live:
+
+- ✅ **Security audit (manual pass)** — see [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
+  Verified lead authz/PII lockdown + listing ownership are enforced server-side.
+  Fixed: removed noisy per-request auth `console.log`; pinned `jwt.verify` to
+  `HS256`. **Open (needs domains):** the CORS allowlist is still the ToJoin
+  fork's — suffix-matches `*.onrender.com`/`*.web.app`/`*.railway.app` with
+  credentials; must become an explicit prod-origin allowlist in task 5.
+- ✅ **GDPR/CCPA data access + erasure** — backend `GET /auth/me/export`
+  (profile + wishlists + saved searches + submitted leads + notifications as a
+  JSON download; excludes `passwordHash`/`fcmToken`) and `DELETE /auth/me`
+  (password re-auth; transactional delete with cascades; **scrubs PII on the
+  seeker's submitted leads** while the lead survives as the agent's record;
+  **blocks** agents with live listings → 409). Web: `/account` privacy page
+  (download-data link → `/api/me/export` route handler that keeps the httpOnly
+  token server-side; two-step delete with password confirm), `deleteAccountAction`.
+  **Verified live** on Neon: export redacts credentials; delete happy-path (register
+  → lead → delete 200 → re-login 401 → agent inbox lead scrubbed to "Deleted user"
+  / redacted email / null phone); guards return 409 (has listings) + 401 (wrong pw).
+- ✅ **Cookie/consent** — privacy-preserving banner (essential-only default; sets
+  nothing non-essential either way), persisted per-viewer in `localStorage`;
+  `/privacy` summary page; footer Privacy + Account links. Verified in-browser.
+
+Deferred (rest of Phase 6):
+- ⏳ CORS allowlist rewrite (needs real prod domains — task 5), `/vibe-security`
+  run (user-triggered), Fair Housing review of filtering, WCAG AA a11y pass,
+  admin essentials (F14–F16), launch readiness (prod env, backups, runbooks).
+
 ## Changelog
 | Date | Change |
 |---|---|
@@ -337,5 +367,6 @@ Deferred (need infra/decisions, not local-verifiable):
 | 2026-08-19 | Path A **step 5 — DONE (Path A complete)** — repointed the web seam to the backend API: shared contracts in `packages/shared` (`listingCardSchema`, `searchParams/Response`), web API client + `searchListings` seam (`apps/web/src/server/*`), removed the Supabase adapter/deps, added a `/search` page. **Verified full stack live in-browser**: `/search?q=austin` → web seam → Express `GET /api/v1/listings` → PostGIS → rendered cards (Postgres + Redis + Next all running). Whole-workspace `tsc` + web build clean. |
 | 2026-08-19 | Path A **step 4** — auth adaptation: roles renamed `guest/host → seeker/agent` (enum + middleware + `authorize()` + notifications + swagger + chat labels); `phone` made optional; added OTP-free **email-first register** (`POST /auth/register-email`, seeker/agent, tokens issued immediately) alongside the existing phone/email login. **Verified** vs local DB: register (phone null) → login → JWT role correct; wrong-password + duplicate-email rejected. (Stale listings Swagger JSDoc left as cosmetic debt.) |
 | 2026-08-19 | Path A **step 3** — PostGIS search on the Prisma Postgres: `prisma/sql/0001_postgis_search.sql` (geom + FTS columns, GiST/GIN indexes, `search_listings()`/facets on the `"Listing"` table) + `src/search/engine.ts` (`SearchEngine` via `$queryRaw`). Retired the interim Prisma search; added `bbox` map-bounds param. **Verified end-to-end** against local Postgres+PostGIS: `prisma db push` → apply SQL → seed → search (full-text, filters, bbox, facets, draft-exclusion) correct via both psql and the TS engine. Removed stale ToJoin migrations (schema via `db push` for now). |
+| 2026-08-28 | **Phase 6 started (security + compliance)** — manual security audit ([SECURITY_AUDIT.md](SECURITY_AUDIT.md); fixed auth log noise + pinned JWT alg; flagged inherited CORS). GDPR data-export (`GET /auth/me/export`) + erasure (`DELETE /auth/me`, password re-auth, lead-PII scrub, agent-with-listings guard); web `/account` + `/privacy` + cookie-consent banner. Verified live on Neon incl. full delete→scrub flow; 35 backend tests green. |
 | 2026-08-28 | **Phase 5 executed (read-path hardening)** — sitemaps-at-scale (full catalogue + city pages via new `/listings/sitemap` feed + `getCities()` seam), observability (structured logger, request-id/timing middleware, in-process metrics registry, `/metrics` + `/health/ready`, search-SLO slow-query warn; dropped morgan), caching audit (no gap), EXPLAIN index-tuning harness, and a k6 load-test harness. Verified live on Neon+Redis; 35 backend tests green. |
 | 2026-08-24 | **Phase 3 executed** — accounts & leads. Backend: `Lead` + `SavedSearch` models/enums; leads module (rate-limited + honeypot public submit → txn write + notification + retrying email queue; agent inbox); saved-searches module + 15-min BullMQ alert matcher; lead + alert email templates. Web: httpOnly-cookie seeker auth (login/register/logout, `proxy.ts` guard), favorites (optimistic heart + page), saved searches (save + manage), lead capture form, agent inbox wired to real data. Personalization hydrates client-side via `/api/me` so listing/city pages keep ISR. Backend + web `tsc` and `next build` green; live DB verification still gated on provisioning. |

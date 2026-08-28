@@ -103,3 +103,25 @@ export async function logout(): Promise<void> {
   jar.delete(ACCESS_COOKIE);
   jar.delete(REFRESH_COOKIE);
 }
+
+/** GDPR export: the signed-in user's own data as a pretty-printed JSON string. */
+export async function fetchAccountExport(): Promise<string> {
+  const token = await getAccessToken();
+  if (!token) throw new ApiError(401, "Not signed in");
+  const data = await apiGet<unknown>("/auth/me/export", { token });
+  return JSON.stringify(data, null, 2);
+}
+
+/**
+ * GDPR erasure: delete the signed-in user's account (backend re-verifies the
+ * password), then clear the local session. Errors propagate so the caller can
+ * surface e.g. a wrong password or the "remove your listings first" guard.
+ */
+export async function deleteAccount(password?: string): Promise<void> {
+  const token = await getAccessToken();
+  if (!token) throw new ApiError(401, "Not signed in");
+  await apiMutate("DELETE", "/auth/me", { token, body: password ? { password } : {} });
+  const jar = await cookies();
+  jar.delete(ACCESS_COOKIE);
+  jar.delete(REFRESH_COOKIE);
+}
