@@ -379,3 +379,84 @@ export async function updateFcmToken(userId: string, input: UpdateFcmTokenInput)
   });
   return stripPassword(user);
 }
+
+// ─── GDPR / CCPA: data access + erasure (Phase 6) ─────────────────────────────
+
+/**
+ * Right of access / portability (GDPR Art. 15 & 20): the caller's own data as a
+ * plain JSON object. Excludes credentials and internal-only fields.
+ */
+export async function exportAccountData(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      wishlists: {
+        include: { listing: { select: { id: true, slug: true, title: true } } },
+      },
+      savedSearches: true,
+      notifications: true,
+      submittedLeads: {
+        select: {
+          id: true,
+          kind: true,
+          status: true,
+          message: true,
+          preferredAt: true,
+          createdAt: true,
+          listing: { select: { id: true, slug: true, title: true } },
+        },
+      },
+    },
+  });
+  if (!user) throw new AppError(404, 'User not found');
+
+  const { passwordHash: _pw, fcmToken: _fcm, ...profile } = user;
+  return {
+    exportedAt: new Date().toISOString(),
+    profile,
+  };
+}
+
+/**
+ * Right to erasure (GDPR Art. 17). Verifies the caller's password (when they
+ * have one), then deletes the account in a transaction. Cascades remove sessions,
+ * wishlists, saved searches, notifications, device tokens and chat membership;
+ * submitted-lead PII is scrubbed first (the lead row itself is the agent's
+ * business record and survives with `seekerId` nulled).
+ *
+ * Agents/admins with live listings are blocked — deleting them would remove public
+ * inventory — and must remove their listings first (or be handled by an admin).
+ */
+export async function deleteAccount(userId: string, password?: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, passwordHash: true, role: true },
+  });
+  if (!user) throw new AppError(404, 'User not found');
+
+  // Re-authenticate password users so a stolen/lingering token can't erase an account.
+  if (user.passwordHash) {
+    if (!password) throw new AppError(400, 'Password is required to delete your account');
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) throw new AppError(401, 'Incorrect password');
+  }
+
+  const listingCount = await prisma.listing.count({ where: { hostId: userId } });
+  if (listingCount > 0) {
+    throw new AppError(
+      409,
+      `Remove or transfer your ${listingCount} listing(s) before deleting your account.`,
+    );
+  }
+
+  await prisma.$transaction([
+    // Scrub PII the seeker submitted; the lead survives as the agent's record.
+    prisma.lead.updateMany({
+      where: { seekerId: userId },
+      data: { name: 'Deleted user', email: 'redacted@deleted.invalid', phone: null, ipAddress: null },
+    }),
+    prisma.user.delete({ where: { id: userId } }),
+  ]);
+
+  return { deleted: true as const };
+}

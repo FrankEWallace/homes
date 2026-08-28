@@ -4,20 +4,18 @@ import rateLimit from 'express-rate-limit';
 import { env } from '../config/env';
 import type { RequestHandler } from 'express';
 
-const envOrigins = env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(',') : [];
+const envOrigins = env.ALLOWED_ORIGINS
+  ? env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+  : [];
 
+// Exact-match allowlist. Real production origins come from ALLOWED_ORIGINS (env);
+// localhost variants are added only in non-production. No brand domains and no
+// shared-host suffix matching — those let any subdomain make credentialed calls.
 const ALLOWED_ORIGINS = [
   ...envOrigins,
   env.API_BASE_URL.replace(/\/$/, ''),
   ...(env.NODE_ENV === 'production'
-    ? [
-      'https://admin.tojoin.co.tz',
-      'https://tojoin.co.tz',
-      'https://tojoin-admin.onrender.com',
-      'https://tojoin-admin-33ly.onrender.com',
-      'https://tojoin-baa8d.web.app',
-      'https://tojoin-baa8d.firebaseapp.com',
-    ]
+    ? []
     : [
       'http://localhost:3000',
       'http://localhost:3001',
@@ -40,16 +38,9 @@ export const corsMiddleware = cors({
       return;
     }
 
-    const isAllowed = 
+    const isAllowed =
       ALLOWED_ORIGINS.includes('*') ||
-      ALLOWED_ORIGINS.includes(origin) || 
-      origin.endsWith('.onrender.com') || 
-      origin.endsWith('.web.app') || 
-      origin.endsWith('.firebaseapp.com') ||
-      origin.endsWith('.fornax-ai.online') ||
-      origin.endsWith('.railway.app') ||
-      origin.endsWith('.up.railway.app') ||
-      origin.endsWith('.tojoin.co.tz') ||
+      ALLOWED_ORIGINS.includes(origin) ||
       (env.NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin));
 
     if (isAllowed) {

@@ -5,9 +5,9 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.3',
     info: {
-      title: 'ToJoin API',
+      title: 'Homes API',
       version: '1.0.0',
-      description: 'Mobile-first marketplace API for Tanzania — events, tours, accommodation, car rental, and ticketing.',
+      description: 'Real-estate listings marketplace API — search, listings, leads, and agent back-office.',
     },
     servers: [
       { url: `${env.API_BASE_URL}/api/v1`, description: 'Current environment' },

@@ -18,24 +18,24 @@ export type SmsTemplateKey =
 
 const TEMPLATES: Record<SmsTemplateKey, Record<Locale, string>> = {
   otp: {
-    en: 'Your ToJoin code is {code}. Valid for 10 minutes. Do not share this code.',
-    sw: 'Namba yako ya uthibitisho ya ToJoin ni {code}. Inafaa kwa dakika 10. Usishiriki namba hii na mtu yeyote.',
+    en: 'Your Homes code is {code}. Valid for 10 minutes. Do not share this code.',
+    sw: 'Namba yako ya uthibitisho ya Homes ni {code}. Inafaa kwa dakika 10. Usishiriki namba hii na mtu yeyote.',
   },
   opt_out_confirm: {
-    en: 'You have been unsubscribed from ToJoin marketing SMS. Reply START to re-subscribe.',
-    sw: 'Umejiondoa kwenye SMS za matangazo za ToJoin. Jibu ANZA kurejea.',
+    en: 'You have been unsubscribed from Homes marketing SMS. Reply START to re-subscribe.',
+    sw: 'Umejiondoa kwenye SMS za matangazo za Homes. Jibu ANZA kurejea.',
   },
   opt_in_confirm: {
-    en: 'You are re-subscribed to ToJoin SMS updates.',
-    sw: 'Umerejeshwa kwenye taarifa za SMS za ToJoin.',
+    en: 'You are re-subscribed to Homes SMS updates.',
+    sw: 'Umerejeshwa kwenye taarifa za SMS za Homes.',
   },
   booking_confirmed: {
-    en: 'Your ToJoin booking {reference} is confirmed. See you soon!',
-    sw: 'Uhifadhi wako wa ToJoin {reference} umethibitishwa. Tutaonana hivi karibuni!',
+    en: 'Your Homes booking {reference} is confirmed. See you soon!',
+    sw: 'Uhifadhi wako wa Homes {reference} umethibitishwa. Tutaonana hivi karibuni!',
   },
   payment_received: {
-    en: 'ToJoin received your payment of {amount} {currency}. Thank you!',
-    sw: 'ToJoin imepokea malipo yako ya {amount} {currency}. Asante!',
+    en: 'Homes received your payment of {amount} {currency}. Thank you!',
+    sw: 'Homes imepokea malipo yako ya {amount} {currency}. Asante!',
   },
 };
 

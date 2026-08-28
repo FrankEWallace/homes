@@ -165,7 +165,7 @@ export async function seedUser(userId: string) {
     room = await prisma.chatRoom.create({
         data: {
             type: 'direct',
-            name: 'ToJoin Support',
+            name: 'Homes Support',
             members: {
                 create: [
                     { userId: userId, role: 'member' },
@@ -179,7 +179,7 @@ export async function seedUser(userId: string) {
         data: {
             roomId: room.id,
             senderId: adminId,
-            text: 'Jambo! This is the ToJoin Support team. How can we help you today regarding your KYC or listings?',
+            text: 'Jambo! This is the Homes Support team. How can we help you today regarding your listings?',
         }
     });
 

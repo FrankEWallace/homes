@@ -20,10 +20,9 @@ A national-scale public **listings marketplace** (Zillow/Rightmove class). See:
 
 **pnpm monorepo.** Frontend: Next.js 16 (App Router) · React 19 · TS · Tailwind v4 · shadcn/ui
 (harvested from `studio-admin`) · Zustand · react-hook-form + Zod · TanStack Table · Recharts.
-**Backend: Express + Prisma + Postgres** (forked & adapted from the ToJoin marketplace backend) ·
-Redis/BullMQ (queues) · Socket.io (realtime) · S3/Cloudinary (media) · Resend (email) · JWT auth.
-Postgres v1: Neon (managed) → self-hosted at scale. See
-[docs/BACKEND_REUSE_ANALYSIS.md](docs/BACKEND_REUSE_ANALYSIS.md).
+**Backend: Express + Prisma + Postgres** (adapted from an existing Express/Prisma marketplace
+backend template) · Redis/BullMQ (queues) · Socket.io (realtime) · S3/Cloudinary (media) ·
+Resend (email) · JWT auth. Postgres v1: Neon (managed) → self-hosted at scale.
 
 ## Non-negotiable architecture rules (project-specific)
 
