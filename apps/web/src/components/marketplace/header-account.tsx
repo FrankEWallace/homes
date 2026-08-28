@@ -39,8 +39,15 @@ export function HeaderAccount() {
     const onClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
     document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   if (!user) {
@@ -64,6 +71,7 @@ export function HeaderAccount() {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label="Account menu"
         className="border-bebe hover:shadow-subtle flex h-10 items-center gap-2 rounded-full border pl-3 pr-1 transition-shadow"
       >
         <span className="bg-hof block h-0.5 w-4 shadow-[0_5px_0_0_currentColor,0_-5px_0_0_currentColor]" />

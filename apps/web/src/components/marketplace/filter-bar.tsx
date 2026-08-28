@@ -37,7 +37,7 @@ export function FilterBar() {
           name="q"
           type="search"
           defaultValue={params.get("q") ?? ""}
-          placeholder="City or ZIP"
+          placeholder="City or area"
           aria-label="Search location"
           className="text-hof placeholder:text-foggy w-40 bg-transparent text-[14px] outline-none"
         />
@@ -74,10 +74,11 @@ export function FilterBar() {
         onChange={(e) => update({ priceMax: e.target.value || null })}
       >
         <option value="">Any price</option>
-        <option value="3000">≤ $3k</option>
-        <option value="500000">≤ $500k</option>
-        <option value="1000000">≤ $1M</option>
-        <option value="2000000">≤ $2M</option>
+        <option value="1000000">≤ TSh 1M</option>
+        <option value="5000000">≤ TSh 5M</option>
+        <option value="50000000">≤ TSh 50M</option>
+        <option value="200000000">≤ TSh 200M</option>
+        <option value="500000000">≤ TSh 500M</option>
       </select>
 
       <select

@@ -66,6 +66,7 @@ export function EnquiryForm({
       <div className="border-bebe mb-1 grid grid-cols-2 gap-1 rounded-full border p-1 text-[13px] font-medium">
         <button
           type="button"
+          aria-pressed={kind === "enquiry"}
           onClick={() => setKind("enquiry")}
           className={`rounded-full py-1.5 transition-colors ${kind === "enquiry" ? "bg-hof text-white" : "text-hof"}`}
         >
@@ -73,6 +74,7 @@ export function EnquiryForm({
         </button>
         <button
           type="button"
+          aria-pressed={kind === "viewing_request"}
           onClick={() => setKind("viewing_request")}
           className={`rounded-full py-1.5 transition-colors ${kind === "viewing_request" ? "bg-hof text-white" : "text-hof"}`}
         >

@@ -351,10 +351,28 @@ Security + compliance code (first slice) — done + verified live:
   nothing non-essential either way), persisted per-viewer in `localStorage`;
   `/privacy` summary page; footer Privacy + Account links. Verified in-browser.
 
+Second slice (2026-08-28) — a11y + Fair Housing + localization fixes:
+- ✅ **WCAG AA pass (public flows)** — audited home/search/listing/forms/header.
+  Baseline was good (labels, `aria-label`s, focus-visible, `role=menu`). Fixed:
+  account-menu button had **no accessible name** (`aria-label`), added Escape-to-
+  close; enquiry tab buttons now expose `aria-pressed`; added a **skip-to-content**
+  link + `id="main"`. Verified live (skip link is first focusable element).
+- ✅ **Fair Housing review** — [FAIR_HOUSING.md](FAIR_HOUSING.md): all search
+  inputs are property attributes (no protected characteristic filterable/derived;
+  no audience targeting) → **non-discriminatory by construction**. Added a footer
+  non-discrimination notice. Open item = listing-content moderation, scoped to
+  admin essentials.
+- ✅ **Localization leftovers fixed** (surfaced during the a11y pass): home
+  "Popular cities" hardcoded **US cities** (404'd on TZS data) → now dynamic from
+  `getCities()`; filter-bar showed **USD** thresholds → TZS (`≤ TSh 1M…500M`);
+  "ZIP" → "area". Verified live: home shows Dar es Salaam/Arusha/Zanzibar/Mwanza/
+  Dodoma; search shows TZS prices.
+
 Deferred (rest of Phase 6):
-- ⏳ CORS allowlist rewrite (needs real prod domains — task 5), `/vibe-security`
-  run (user-triggered), Fair Housing review of filtering, WCAG AA a11y pass,
-  admin essentials (F14–F16), launch readiness (prod env, backups, runbooks).
+- ⏳ `/vibe-security` run (user-triggered), **admin essentials** (F14–F16:
+  taxonomy/user/agency management + moderation/duplicate flags — also carries the
+  Fair Housing content-moderation follow-up), launch readiness (prod env +
+  `ALLOWED_ORIGINS`, backups/restore, runbooks, rollback).
 
 ## Changelog
 | Date | Change |
@@ -367,6 +385,7 @@ Deferred (rest of Phase 6):
 | 2026-08-19 | Path A **step 5 — DONE (Path A complete)** — repointed the web seam to the backend API: shared contracts in `packages/shared` (`listingCardSchema`, `searchParams/Response`), web API client + `searchListings` seam (`apps/web/src/server/*`), removed the Supabase adapter/deps, added a `/search` page. **Verified full stack live in-browser**: `/search?q=austin` → web seam → Express `GET /api/v1/listings` → PostGIS → rendered cards (Postgres + Redis + Next all running). Whole-workspace `tsc` + web build clean. |
 | 2026-08-19 | Path A **step 4** — auth adaptation: roles renamed `guest/host → seeker/agent` (enum + middleware + `authorize()` + notifications + swagger + chat labels); `phone` made optional; added OTP-free **email-first register** (`POST /auth/register-email`, seeker/agent, tokens issued immediately) alongside the existing phone/email login. **Verified** vs local DB: register (phone null) → login → JWT role correct; wrong-password + duplicate-email rejected. (Stale listings Swagger JSDoc left as cosmetic debt.) |
 | 2026-08-19 | Path A **step 3** — PostGIS search on the Prisma Postgres: `prisma/sql/0001_postgis_search.sql` (geom + FTS columns, GiST/GIN indexes, `search_listings()`/facets on the `"Listing"` table) + `src/search/engine.ts` (`SearchEngine` via `$queryRaw`). Retired the interim Prisma search; added `bbox` map-bounds param. **Verified end-to-end** against local Postgres+PostGIS: `prisma db push` → apply SQL → seed → search (full-text, filters, bbox, facets, draft-exclusion) correct via both psql and the TS engine. Removed stale upstream migrations (schema via `db push` for now). |
-| 2026-08-28 | **Phase 6 started (security + compliance)** — manual security audit ([SECURITY_AUDIT.md](SECURITY_AUDIT.md); fixed auth log noise + pinned JWT alg; flagged inherited CORS). GDPR data-export (`GET /auth/me/export`) + erasure (`DELETE /auth/me`, password re-auth, lead-PII scrub, agent-with-listings guard); web `/account` + `/privacy` + cookie-consent banner. Verified live on Neon incl. full delete→scrub flow; 35 backend tests green. |
+| 2026-08-28 | **Phase 6 started (security + compliance)** — manual security audit ([SECURITY_AUDIT.md](SECURITY_AUDIT.md); fixed auth log noise + pinned JWT alg; rewrote CORS to exact-match env-driven). GDPR data-export (`GET /auth/me/export`) + erasure (`DELETE /auth/me`, password re-auth, lead-PII scrub, agent-with-listings guard); web `/account` + `/privacy` + cookie-consent banner. De-branded the repo (removed all ToJoin references + dead code). Verified live on Neon incl. full delete→scrub flow; 35 backend tests green. |
+| 2026-08-28 | **Phase 6 (a11y + Fair Housing)** — WCAG AA pass on public flows (account-menu accessible name + Esc-to-close, enquiry `aria-pressed`, skip-to-content link); Fair Housing review ([FAIR_HOUSING.md](FAIR_HOUSING.md)) + footer non-discrimination notice. Fixed localization leftovers surfaced in the pass: home Popular Cities now dynamic (was hardcoded US cities → 404), filter prices USD→TZS, "ZIP"→"area". Verified live. |
 | 2026-08-28 | **Phase 5 executed (read-path hardening)** — sitemaps-at-scale (full catalogue + city pages via new `/listings/sitemap` feed + `getCities()` seam), observability (structured logger, request-id/timing middleware, in-process metrics registry, `/metrics` + `/health/ready`, search-SLO slow-query warn; dropped morgan), caching audit (no gap), EXPLAIN index-tuning harness, and a k6 load-test harness. Verified live on Neon+Redis; 35 backend tests green. |
 | 2026-08-24 | **Phase 3 executed** — accounts & leads. Backend: `Lead` + `SavedSearch` models/enums; leads module (rate-limited + honeypot public submit → txn write + notification + retrying email queue; agent inbox); saved-searches module + 15-min BullMQ alert matcher; lead + alert email templates. Web: httpOnly-cookie seeker auth (login/register/logout, `proxy.ts` guard), favorites (optimistic heart + page), saved searches (save + manage), lead capture form, agent inbox wired to real data. Personalization hydrates client-side via `/api/me` so listing/city pages keep ISR. Backend + web `tsc` and `next build` green; live DB verification still gated on provisioning. |

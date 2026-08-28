@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
+import { getCities } from "@/server/cities";
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Real cities from the taxonomy (ISR-cached) — drives the SEO landing links.
+  const cities = await getCities();
   return (
     <section className="mx-auto flex w-full max-w-[1440px] flex-col items-center px-6 py-24 text-center md:px-10 md:py-32">
       <h1 className="text-hof max-w-3xl text-[28px] font-bold tracking-[-0.02em] text-balance sm:text-[40px]">
@@ -21,7 +24,7 @@ export default function HomePage() {
           <input
             name="q"
             type="search"
-            placeholder="City, neighborhood, or ZIP"
+            placeholder="City, neighborhood, or area"
             aria-label="Search location"
             className="text-hof placeholder:text-foggy mt-0.5 w-full bg-transparent text-[14px] outline-none"
           />
@@ -63,16 +66,11 @@ export default function HomePage() {
       </div>
 
       {/* Popular cities — internal links to SEO landing pages */}
+      {cities.length > 0 && (
       <div className="mt-16 w-full max-w-[780px]">
         <p className="text-foggy mb-3 text-[13px] font-semibold tracking-wide uppercase">Popular cities</p>
         <div className="flex flex-wrap justify-center gap-2">
-          {[
-            { name: "San Francisco", slug: "san-francisco" },
-            { name: "Austin", slug: "austin" },
-            { name: "New York", slug: "new-york" },
-            { name: "Seattle", slug: "seattle" },
-            { name: "Miami", slug: "miami" },
-          ].map((c) => (
+          {cities.map((c) => (
             <Link
               key={c.slug}
               href={`/homes/${c.slug}`}
@@ -83,6 +81,7 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+      )}
     </section>
   );
 }
