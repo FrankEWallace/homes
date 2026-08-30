@@ -54,3 +54,9 @@ jobs:
       - name: Lint (advisory)
         run: pnpm lint
         continue-on-error: true
+
+      # Surface dependency CVEs. Advisory (does not gate) so a transitive
+      # moderate can't block a deploy, but it's visible on every PR.
+      - name: Dependency audit (advisory)
+        run: pnpm audit --prod --audit-level moderate
+        continue-on-error: true

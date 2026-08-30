@@ -47,6 +47,26 @@ them — the worker. In v1 they run in-process; scale the worker out later.
 Generate secrets with `openssl rand -base64 48`. Never commit real values — only
 `.env.example` (placeholders) is tracked.
 
+## Provisioned so far (2026-08-31)
+
+- ✅ **Production Postgres** — Neon project `homes-production`
+  (`royal-pond-53136827`, aws-eu-central-1, PG 18), **separate** from the dev
+  project `RealHomes`. Prisma schema + PostGIS SQL applied; seeded
+  (reference data + demo listings). Verified: `search_listings()` returns geo +
+  full-text hits. Baseline snapshot `baseline-post-seed-2026-08-31` captured.
+  - `DATABASE_URL` (runtime) → the **pooled** endpoint
+    (`…-pooler.c-6.eu-central-1.aws.neon.tech`).
+  - Migrations/DDL → the **direct** endpoint (drop `-pooler`). Never run
+    `prisma db push` here — it would drop `geom`/`search_tsv` (see §3). The
+    connection strings live in Neon console → set them as deploy secrets; they
+    are **not** committed.
+  - ⚠️ **Free plan** — fine for launch/staging; upgrade to a paid plan for real
+    production (no compute auto-suspend, more storage, longer PITR).
+  - ⚠️ The 13 seeded listings are **demo data** — delete them (admin → listings)
+    before real public launch; the users/cities/property-types are the keepers.
+- ⏳ Still to provision: Redis (Upstash), media (R2/Cloudinary), email (Resend),
+  the web + backend hosts, and domains.
+
 ## 3. Database — migrate, PostGIS, seed
 
 **Order matters.** Prisma does not know about the PostGIS columns, so a bare
